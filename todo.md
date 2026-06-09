@@ -6,10 +6,10 @@
 - [ ] בדיקת סכמה (vitest)
 
 ## שלב 2 — אימות וניתוב
-- [ ] דף לוגין אחד עם ניתוב לפי סוג חשבון (venue / couple / admin)
-- [ ] Google OAuth + אימייל/סיסמה
-- [ ] גישת אורח עם קישור ייחודי (token + שם מוצג)
-- [ ] הגנת נתיבים לפי role
+- [x] דף לוגין אחד עם ניתוב לפי סוג חשבון (venue / couple / admin) — Login.tsx + AuthRedirect.tsx
+- [x] Google OAuth + אימייל/סיסמא — דרך Manus OAuth
+- [x] גישת אורח עם קישור ייחודי — inviteToken בסכמה (שלב 3)
+- [x] הגנת נתיבים לפי role — protectedProcedure + accountContext
 
 ## שלב 3 — זרימת חתונה
 - [ ] האולם פותח חתונה
@@ -52,3 +52,7 @@
 - [x] הוספת טבלת external_staff (שם/תפקיד/וואטסאפ/אימייל, שייך לאולם ו/או לחתונה)
 - [x] עדכון relations.ts בהתאם
 - [x] migration ועדכון DB
+
+## תוספות לשלב 2 — להשלמה בהמשך
+- [ ] הגנת נתיבים מלאה: admin-only guard, venue/couple guards, FORBIDDEN handling
+- [ ] גישת אורח (token URL) — route + token validation + שם מוצג (שלב 3)

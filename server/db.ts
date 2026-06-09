@@ -1,6 +1,16 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  Couple,
+  InsertCouple,
+  InsertUser,
+  InsertVenue,
+  User,
+  Venue,
+  couples,
+  users,
+  venues,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -17,6 +27,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+// ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -77,7 +89,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 }
 
-export async function getUserByOpenId(openId: string) {
+export async function getUserByOpenId(openId: string): Promise<User | undefined> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
@@ -85,8 +97,100 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserById(id: number): Promise<User | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// ─── Venues ───────────────────────────────────────────────────────────────────
+
+/**
+ * Get the venue linked to a user account.
+ * Returns null if the user has no venue (not a venue account).
+ */
+export async function getVenueByUserId(userId: number): Promise<Venue | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(venues).where(eq(venues.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Create a new venue and link it to a user account.
+ */
+export async function createVenue(data: InsertVenue): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(venues).values(data);
+  // @ts-ignore — insertId exists on mysql2 result
+  return result[0].insertId as number;
+}
+
+/**
+ * Update a venue record.
+ */
+export async function updateVenue(id: number, data: Partial<InsertVenue>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(venues).set(data).where(eq(venues.id, id));
+}
+
+// ─── Couples ─────────────────────────────────────────────────────────────────
+
+/**
+ * Get the couple linked to a user account.
+ * Returns null if the user has no couple record.
+ */
+export async function getCoupleByUserId(userId: number): Promise<Couple | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(couples).where(eq(couples.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Create a new couple record.
+ */
+export async function createCouple(data: InsertCouple): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(couples).values(data);
+  // @ts-ignore — insertId exists on mysql2 result
+  return result[0].insertId as number;
+}
+
+/**
+ * Update a couple record.
+ */
+export async function updateCouple(id: number, data: Partial<InsertCouple>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(couples).set(data).where(eq(couples.id, id));
+}
+
+/**
+ * Get account context for a user — determines which dashboard to show.
+ * Returns: { accountType: 'admin' | 'venue' | 'couple' | 'new', venue?, couple? }
+ */
+export async function getAccountContext(userId: number, userRole: string) {
+  if (userRole === 'admin') {
+    return { accountType: 'admin' as const };
+  }
+
+  const venue = await getVenueByUserId(userId);
+  if (venue) {
+    return { accountType: 'venue' as const, venue };
+  }
+
+  const couple = await getCoupleByUserId(userId);
+  if (couple) {
+    return { accountType: 'couple' as const, couple };
+  }
+
+  return { accountType: 'new' as const };
+}
