@@ -566,6 +566,47 @@ export const messages = mysqlTable("messages", {
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 
+// ─── External Staff (צוות חיצוני — שף/DJ/אבטחה) ────────────────────────────────
+// External staff are NOT users — they receive reports via WhatsApp/email without login.
+// They belong to a venue and optionally to a specific wedding.
+
+export const externalStaff = mysqlTable("external_staff", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → venues.id — the venue this staff member belongs to */
+  venueId: int("venueId").notNull(),
+  /**
+   * weddingId: FK → weddings.id — optional, if assigned to a specific wedding
+   * null = belongs to venue generally (available for all weddings)
+   */
+  weddingId: int("weddingId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  /**
+   * role: staff role
+   * e.g. שף/DJ/אבטחה/מלצרות/תאורה/קייטרינג
+   * Free text to allow flexibility
+   */
+  role: varchar("role", { length: 100 }).notNull(),
+  /** whatsapp: WhatsApp number for sending reports */
+  whatsapp: varchar("whatsapp", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  /**
+   * receiveReports: whether this staff member receives automated reports
+   * Chef report sent automatically on wedding morning (SPEC §7.1 point 8)
+   */
+  receiveReports: boolean("receiveReports").notNull().default(true),
+  /**
+   * reportTypes: JSON array of report types this staff member receives
+   * e.g. ["chef_report", "staff_schedule", "guest_list"]
+   */
+  reportTypes: json("reportTypes").$type<string[]>(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ExternalStaff = typeof externalStaff.$inferSelect;
+export type InsertExternalStaff = typeof externalStaff.$inferInsert;
+
 // ─── Tool Settings (הגדרות כלים — כיבוי/הדלקה ע"י הזוג) ─────────────────────
 
 export const toolSettings = mysqlTable("tool_settings", {

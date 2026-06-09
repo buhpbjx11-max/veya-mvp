@@ -4,6 +4,7 @@ import {
   budgetItems,
   couples,
   documents,
+  externalStaff,
   familyAccess,
   feedback,
   guests,
@@ -46,6 +47,7 @@ export const venuesRelations = relations(venues, ({ one, many }) => ({
   subscriptions: many(subscriptions),
   invoices: many(invoices),
   feedback: many(feedback),
+  externalStaff: many(externalStaff),
 }));
 
 // ─── Couples ──────────────────────────────────────────────────────────────────
@@ -111,7 +113,7 @@ export const vendorsRelations = relations(vendors, ({ one }) => ({
 
 // ─── Weddings ─────────────────────────────────────────────────────────────────
 
-export const weddingsRelations = relations(weddings, ({ one }) => ({
+export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   venue: one(venues, {
     fields: [weddings.venueId],
     references: [venues.id],
@@ -120,6 +122,7 @@ export const weddingsRelations = relations(weddings, ({ one }) => ({
     fields: [weddings.coupleId],
     references: [couples.id],
   }),
+  externalStaff: many(externalStaff),
 }));
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
@@ -212,3 +215,19 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ─── External Staff ───────────────────────────────────────────────────────────
+
+export const externalStaffRelations = relations(externalStaff, ({ one }) => ({
+  venue: one(venues, {
+    fields: [externalStaff.venueId],
+    references: [venues.id],
+  }),
+  wedding: one(weddings, {
+    fields: [externalStaff.weddingId],
+    references: [weddings.id],
+  }),
+}));
+
+// ─── Venues (extended with externalStaff) ─────────────────────────────────────
+// Note: venuesRelations already defined above; externalStaff added via externalStaffRelations
