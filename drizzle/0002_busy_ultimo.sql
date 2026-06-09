@@ -1,0 +1,1 @@
+ALTER TABLE `seatingTables` MODIFY COLUMN `assignedGuests` json;
