@@ -38,7 +38,13 @@ export default function Onboarding() {
   const registerCouple = trpc.couple.register.useMutation({
     onSuccess: () => {
       toast.success("הפרופיל נוצר בהצלחה!");
-      navigate("/couple/dashboard", { replace: true });
+      // If arrived from a wedding invite, go back to complete the invite acceptance
+      const pendingJoinToken = sessionStorage.getItem("veya_join_token");
+      if (pendingJoinToken) {
+        navigate(`/join/${pendingJoinToken}`, { replace: true });
+      } else {
+        navigate("/couple/dashboard", { replace: true });
+      }
     },
     onError: (err) => toast.error(err.message || "שגיאה ביצירת הפרופיל"),
   });

@@ -12,11 +12,11 @@
 - [x] הגנת נתיבים לפי role — protectedProcedure + accountContext
 
 ## שלב 3 — זרימת חתונה
-- [ ] האולם פותח חתונה
-- [ ] שליחת קישור ייחודי לזוג
-- [ ] הזוג נכנס ונהיה venue_linked
-- [ ] assignment_locked נאכף ברמת הנתונים
-- [ ] עריכה ידנית ע"י VEYA HQ
+- [x] האולם פותח חתונה
+- [x] שליחת קישור ייחודי לזוג
+- [x] הזוג נכנס ונהיה venue_linked
+- [x] assignment_locked נאכף ברמת הנתונים
+- [ ] עריכה ידנית ע"י VEYA HQ (שלב 6)
 
 ## שלב 4 — שני סוגי זוגות
 - [ ] venue_linked: צ'אט עם אולם, דוחות אולם, שיוך
@@ -56,3 +56,15 @@
 ## תוספות לשלב 2 — להשלמה בהמשך
 - [ ] הגנת נתיבים מלאה: admin-only guard, venue/couple guards, FORBIDDEN handling
 - [ ] גישת אורח (token URL) — route + token validation + שם מוצג (שלב 3)
+
+## שלב 3 — זרימת חתונה (פירוט)
+- [x] procedure: wedding.create (אולם יוצר חתונה + inviteToken ייחודי)
+- [x] procedure: wedding.list (רשימת חתונות של האולם)
+- [x] procedure: wedding.getByToken (קבלת פרטי חתונה לפי token — ציבורי)
+- [x] procedure: wedding.acceptInvite (זוג מקבל קישור → couple.type = venue_linked)
+- [x] UI: CreateWeddingModal — טופס יצירת חתונה באולם
+- [x] UI: WeddingList — רשימת חתונות בדשבורד האולם
+- [x] UI: /join/:token — דף קבלת קישור לזוג
+- [x] עדכון VenueDashboard — חתונות אמיתיות מה-DB + InviteLinkModal
+- [ ] עדכון CoupleDashboard — שם האולם אם venue_linked (שלב 4)
+- [x] בדיקות vitest לזרימה המלאה — 11 בדיקות עוברות

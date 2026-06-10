@@ -32,6 +32,16 @@ export default function AuthRedirect() {
 
     if (!context) return;
 
+    // Check if user arrived from a wedding invite link
+    const pendingJoinToken = sessionStorage.getItem("veya_join_token");
+    if (pendingJoinToken) {
+      // Don't clear yet — JoinWedding page will handle it
+      // Redirect to join page regardless of account type
+      // If couple not registered yet, JoinWedding will redirect to onboarding
+      navigate(`/join/${pendingJoinToken}`, { replace: true });
+      return;
+    }
+
     switch (context.accountType) {
       case "admin":
         navigate("/admin", { replace: true });

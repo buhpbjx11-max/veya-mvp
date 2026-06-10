@@ -15,6 +15,9 @@ import VenueDashboard from "./pages/VenueDashboard";
 import CoupleDashboard from "./pages/CoupleDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
+// Wedding invite
+import JoinWedding from "./pages/JoinWedding";
+
 function Router() {
   return (
     <Switch>
@@ -30,6 +33,9 @@ function Router() {
       <Route path="/venue/dashboard" component={VenueDashboard} />
       <Route path="/couple/dashboard" component={CoupleDashboard} />
       <Route path="/admin" component={AdminDashboard} />
+
+      {/* Wedding invite — public, no auth required */}
+      <Route path="/join/:token" component={JoinWedding} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

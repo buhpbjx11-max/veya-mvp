@@ -1,283 +1,270 @@
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLocation } from "wouter";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import CreateWeddingModal from "@/components/CreateWeddingModal";
+import InviteLinkModal from "@/components/InviteLinkModal";
 
-/**
- * VEYA Venue Dashboard — exact prototype match (venue_dashboard.html)
- * Moss sidebar + cream main area + KPI cards + next wedding hero card
- */
+/* ── SVG Icons ── */
+const IcoWedding = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><path d="M8 12l3 3 5-5" /></svg>;
+const IcoGuests = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87" /></svg>;
+const IcoMsg = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+const IcoPlus = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoChef = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6z" /><line x1="6" y1="17" x2="18" y2="17" /></svg>;
+const IcoSettings = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+const IcoLogout = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
+const IcoCalendar = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+const IcoVendors = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
+const IcoLink = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>;
+
+const CARD_STYLE = {
+  background: "#fff",
+  border: "1px solid #EFEDE7",
+  borderRadius: 18,
+  boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)",
+};
+
+const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
+  prep: { bg: "#EEF4FF", color: "#3B5BDB", label: "בהכנה" },
+  active: { bg: "#DDEAE0", color: "#2F6B3E", label: "יום החתונה" },
+  done: { bg: "#F5F5F5", color: "#6B7280", label: "הסתיים" },
+};
+
 export default function VenueDashboard() {
   const { user, logout } = useAuth({ redirectOnUnauthenticated: true });
-  const [, navigate] = useLocation();
-  const { data: venue, isLoading } = trpc.venue.me.useQuery(undefined, { enabled: !!user });
+  const { data: venue, isLoading: loadingVenue } = trpc.venue.me.useQuery(undefined, { enabled: !!user });
+  const { data: weddingList, isLoading: loadingWeddings } = trpc.wedding.list.useQuery(undefined, { enabled: !!user });
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
+  const [showCreate, setShowCreate] = useState(false);
+  const [inviteModal, setInviteModal] = useState<{ url: string; names: string } | null>(null);
 
-  if (isLoading || !user) {
-    return <VenueSkeleton />;
+  const handleLogout = async () => { await logout(); window.location.href = "/login"; };
+
+  const navItems = [
+    { label: "לוח בקרה", icon: <IcoWedding />, active: true },
+    { label: "חתונות", icon: <IcoCalendar /> },
+    { label: "אורחים", icon: <IcoGuests /> },
+    { label: "ספקים", icon: <IcoVendors /> },
+    { label: "דוח שף", icon: <IcoChef /> },
+    { label: "הודעות", icon: <IcoMsg /> },
+    { label: "הגדרות", icon: <IcoSettings /> },
+  ];
+
+  if (loadingVenue) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F8F6F2", padding: 24 }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
   }
 
-  const venueName = venue?.name ?? user.name ?? "האולם שלי";
-  const initials = venueName.slice(0, 2);
+  const activeWeddings = weddingList?.filter(w => w.status !== "done") ?? [];
+  const linkedWeddings = weddingList?.filter(w => w.coupleId !== null) ?? [];
 
   return (
-    <div className="veya-app-shell">
-      {/* ── Sidebar ── */}
-      <aside className="veya-sidebar" style={{ position: "relative" }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36, padding: "0 6px" }}>
-          <VeyaLogoSvg size={26} color="var(--sand)" />
-          <span className="veya-wordmark">VEYA</span>
-        </div>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }} dir="rtl">
+        {/* ── Sidebar ── */}
+        <aside style={{ background: "#3F4842", padding: "28px 18px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36 }}>
+            <svg width="24" height="24" viewBox="0 0 40 40" fill="none" stroke="#D9C5A1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 10 L20 30 L32 10" /><path d="M14 14 L20 22 L26 14" opacity="0.6" />
+            </svg>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#F8F6F2", letterSpacing: 6 }}>VEYA</span>
+          </div>
 
-        {/* Nav */}
-        <div className="veya-nav-section" style={{ marginTop: 0 }}>המסך שלי</div>
-        <NavItem icon={<IconHome />} label="דשבורד" active />
-
-        <div className="veya-nav-section">ניהול האולם</div>
-        <NavItem icon={<IconTable />} label="תבנית סידור שולחנות" />
-        <NavItem icon={<IconReport />} label="דוחות אוטומטיים" />
-        <NavItem icon={<IconClock />} label="לוח זמנים יום החתונה" />
-        <NavItem icon={<IconDoc />} label="מסמכים" />
-        <NavItem icon={<IconVendor />} label="ספקים מועדפים" />
-        <NavItem icon={<IconChart />} label="סטטיסטיקות" />
-
-        {/* Botanical decoration */}
-        <svg className="veya-botanical" width="80" height="50" viewBox="0 0 80 50" fill="none">
-          <path d="M4 44 Q30 28, 76 6" stroke="#A8C3B0" strokeWidth="1.2" fill="none" />
-          <ellipse cx="14" cy="38" rx="6" ry="3" fill="#A8C3B0" transform="rotate(-30 14 38)" />
-          <ellipse cx="30" cy="28" rx="5.5" ry="2.5" fill="#A8C3B0" transform="rotate(-25 30 28)" />
-          <ellipse cx="48" cy="18" rx="5" ry="2.5" fill="#A8C3B0" transform="rotate(-20 48 18)" />
-          <ellipse cx="62" cy="11" rx="4.5" ry="2" fill="#A8C3B0" transform="rotate(-15 62 11)" />
-        </svg>
-
-        {/* Profile */}
-        <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid rgba(248, 246, 242, 0.1)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px" }}>
-            <div className="veya-avatar">{initials}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: "var(--cream)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {venueName}
+          <nav style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "0 12px", marginBottom: 8 }}>ניהול</div>
+            {navItems.map((item) => (
+              <div
+                key={item.label}
+                onClick={() => !item.active && toast.info(`${item.label} — בקרוב`)}
+                style={{
+                  padding: "10px 12px", color: item.active ? "#F8F6F2" : "rgba(248,246,242,.65)",
+                  borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2,
+                  cursor: "pointer", background: item.active ? "rgba(168,195,176,.18)" : "transparent",
+                  borderRight: item.active ? "2px solid #D9C5A1" : "2px solid transparent", transition: "all 0.15s",
+                }}
+              >
+                <span style={{ width: 16, height: 16, flexShrink: 0 }}>{item.icon}</span>
+                {item.label}
               </div>
-              <div style={{ fontSize: 11, color: "rgba(248, 246, 242, 0.5)" }}>
-                {venue?.plan ?? "Trial"}
+            ))}
+          </nav>
+
+          <div style={{ borderTop: "1px solid rgba(248,246,242,.1)", paddingTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#D9C5A1", color: "#3F4842", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+              {(venue?.name || user?.name || "A").charAt(0)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, color: "#F8F6F2", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{venue?.name || user?.name}</div>
+              <div style={{ fontSize: 11, color: "rgba(248,246,242,.5)" }}>
+                {venue?.subStatus === "trial" ? "ניסיון חינם" : "אולם פעיל"}
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              title="יציאה"
-              style={{ background: "transparent", border: "none", color: "rgba(248,246,242,0.5)", cursor: "pointer", padding: 4, borderRadius: 4 }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
+            <button onClick={handleLogout} title="יציאה" style={{ background: "transparent", border: "none", color: "rgba(248,246,242,.5)", cursor: "pointer", padding: 4, width: 18, height: 18 }}>
+              <IcoLogout />
             </button>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      {/* ── Main ── */}
-      <main className="veya-main">
-        {/* Page header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32, gap: 20, flexWrap: "wrap" }}>
-          <div>
-            <div className="veya-page-eyebrow">Venue Dashboard</div>
-            <h1 className="veya-page-title">{venueName}</h1>
-            <p className="veya-page-subtitle">
-              ברוכים הבאים · <strong>יש לכם 3 חתונות החודש</strong>
+        {/* ── Main ── */}
+        <main style={{ background: "#F8F6F2", padding: "36px 44px 60px", overflowX: "hidden" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: 13, color: "#8B8B85", letterSpacing: 1.5, marginBottom: 4 }}>• Dashboard</div>
+            <h1 style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 32, color: "#3F4842", fontWeight: 400, marginBottom: 4 }}>
+              שלום, {venue?.name || user?.name}
+            </h1>
+            <p style={{ fontSize: 14, color: "#5D6861" }}>
+              {venue?.subStatus === "trial"
+                ? `ניסיון חינם — ${venue?.trialEndsAt ? `עד ${new Date(venue.trialEndsAt).toLocaleDateString("he-IL")}` : "14 יום"}`
+                : "חשבון פעיל"}
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="veya-btn-secondary" style={{ fontSize: 13 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-              הגדרות אולם
-            </button>
-            <button className="veya-btn-primary" style={{ fontSize: 13 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              חתונה חדשה
-            </button>
-          </div>
-        </div>
 
-        {/* KPI Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 32 }}>
-          {[
-            { label: "חתונות החודש", value: "3", trend: "+1 מהחודש שעבר", up: true },
-            { label: "אורחים מוזמנים", value: "847", trend: "ב-3 חתונות", up: null },
-            { label: "אישורי הגעה", value: "612", trend: "72% מהמוזמנים", up: true },
-            { label: "הכנסה חזויה", value: "₪284K", trend: "החודש", up: null },
-            { label: "שביעות רצון", value: "4.9", trend: "מ-5 · 23 ביקורות", up: true },
-          ].map((stat) => (
-            <div key={stat.label} className="veya-stat-card">
-              <div className="veya-stat-label">
-                <span>{stat.label}</span>
-              </div>
-              <div className="veya-stat-value">{stat.value}</div>
-              <div className="veya-stat-trend" style={{ color: stat.up === true ? "var(--success)" : stat.up === false ? "var(--danger)" : "var(--forest)" }}>
-                {stat.trend}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Next wedding hero card */}
-        <div className="veya-hero-card" style={{ display: "flex", alignItems: "stretch", gap: 24, marginBottom: 32 }}>
-          <div style={{ flex: 1, minWidth: 0, position: "relative", zIndex: 2 }}>
-            <div className="veya-eyebrow">החתונה הקרובה</div>
-            <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 28, fontWeight: 500, marginBottom: 4, lineHeight: 1.2 }}>
-              נועה{" "}
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "var(--sand)", margin: "0 4px" }}>·</span>
-              {" "}אורי
-            </div>
-            <div style={{ fontSize: 14, color: "rgba(248, 246, 242, 0.85)", marginBottom: 18 }}>
-              יום שישי, <strong style={{ color: "var(--sand)" }}>27.06.2025</strong> · בעוד 17 ימים
-            </div>
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {[
-                { label: "מוזמנים", value: "280" },
-                { label: "מאשרים", value: "241" },
-                { label: "שולחנות", value: "28" },
-              ].map((s) => (
-                <div key={s.label} style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontSize: 11, color: "rgba(248, 246, 242, 0.55)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</span>
-                  <span style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 22, color: "var(--cream)", fontWeight: 500, lineHeight: 1.1 }}>{s.value}</span>
+          {/* Stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "חתונות פעילות", value: String(activeWeddings.length), icon: <IcoWedding /> },
+              { label: "זוגות מקושרים", value: String(linkedWeddings.length), icon: <IcoGuests /> },
+              { label: "הודעות חדשות", value: "0", icon: <IcoMsg /> },
+            ].map((stat, i) => (
+              <div key={i} style={{ ...CARD_STYLE, padding: "18px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#8B8B85", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 10 }}>
+                  <span style={{ width: 13, height: 13, opacity: 0.6 }}>{stat.icon}</span>
+                  {stat.label}
                 </div>
+                <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 32, color: "#3F4842", fontWeight: 400, lineHeight: 1 }}>{stat.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick actions */}
+          <div style={{ ...CARD_STYLE, padding: "24px 28px", marginBottom: 24 }}>
+            <h2 style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 22, color: "#3F4842", fontWeight: 500, marginBottom: 16 }}>פעולות מהירות</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+              {[
+                { label: "חתונה חדשה", icon: <IcoPlus />, action: () => setShowCreate(true) },
+                { label: "ניהול אורחים", icon: <IcoGuests />, action: () => toast.info("בקרוב — שלב 5") },
+                { label: "דוח שף", icon: <IcoChef />, action: () => toast.info("בקרוב — שלב 5") },
+                { label: "הגדרות", icon: <IcoSettings />, action: () => toast.info("בקרוב") },
+              ].map((item, i) => (
+                <button
+                  key={i}
+                  onClick={item.action}
+                  style={{ padding: "16px 12px", border: "1px solid #EFEDE7", borderRadius: 12, background: "#fff", cursor: "pointer", textAlign: "center", transition: "all 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontFamily: "inherit" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#3F4842"; (e.currentTarget as HTMLButtonElement).style.background = "#DDEAE0"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#EFEDE7"; (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                >
+                  <span style={{ width: 22, height: 22, color: "#3F4842" }}>{item.icon}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, color: "#3F4842" }}>{item.label}</span>
+                </button>
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center", position: "relative", zIndex: 2 }}>
-            <button style={{ background: "var(--sand)", color: "var(--moss)", border: "none", borderRadius: 4, padding: "11px 22px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, fontFamily: "inherit", transition: "background 0.2s" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12 C3 7 7 4 12 4 C17 4 21 7 23 12 C21 17 17 20 12 20 C7 20 3 17 1 12 Z" /><circle cx="12" cy="12" r="3" /></svg>
-              פתח חתונה
-            </button>
-            <button style={{ background: "transparent", color: "var(--cream)", border: "1px solid rgba(248, 246, 242, 0.3)", borderRadius: 4, padding: "10px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "inherit", transition: "all 0.2s" }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2 H6 V22 H18 V8 L14 2 Z" /><path d="M14 2 V8 H18" /></svg>
-              דוחות
-            </button>
-          </div>
-        </div>
 
-        {/* Weddings list */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16, gap: 16 }}>
-            <div>
-              <h2 className="veya-section-title">חתונות קרובות</h2>
-              <div className="veya-section-sub">3 חתונות ב-30 הימים הקרובים</div>
+          {/* Wedding list */}
+          <div style={{ ...CARD_STYLE, padding: "24px 28px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 22, color: "#3F4842", fontWeight: 500 }}>חתונות</h2>
+              <button
+                onClick={() => setShowCreate(true)}
+                style={{ background: "#3F4842", color: "#F8F6F2", border: "none", borderRadius: 9999, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 7, transition: "background 0.18s" }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#2D2D2D")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#3F4842")}
+              >
+                <span style={{ width: 14, height: 14 }}><IcoPlus /></span>
+                חתונה חדשה
+              </button>
             </div>
-            <a href="#" style={{ fontSize: 12.5, color: "var(--moss)", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5, textDecoration: "underline", textDecorationColor: "var(--sage)", textUnderlineOffset: 3 }}>
-              כל החתונות
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </a>
+
+            {loadingWeddings ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[1, 2].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : weddingList && weddingList.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {weddingList.map((w) => {
+                  const statusInfo = STATUS_COLORS[w.status] ?? STATUS_COLORS.prep;
+                  // Extract couple names from timeline note
+                  const namesNote = w.timeline?.[0]?.label ?? "—";
+                  return (
+                    <div
+                      key={w.id}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", border: "1px solid #EFEDE7", borderRadius: 10, background: "#FAFAF8", transition: "border-color 0.15s" }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#A8C3B0")}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#EFEDE7")}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 8, background: "#EFEDE7", color: "#3F4842", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ width: 18, height: 18 }}><IcoCalendar /></span>
+                        </div>
+                        <div>
+                          <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 16, color: "#3F4842", fontWeight: 500 }}>{namesNote}</div>
+                          <div style={{ fontSize: 12, color: "#8B8B85", marginTop: 2 }}>
+                            {w.date ? new Date(w.date).toLocaleDateString("he-IL") : "תאריך לא נקבע"}
+                            {" · "}
+                            {w.coupleId ? "זוג מקושר" : "ממתין לזוג"}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 11.5, padding: "3px 10px", borderRadius: 9999, background: statusInfo.bg, color: statusInfo.color, fontWeight: 500 }}>
+                          {statusInfo.label}
+                        </span>
+                        {!w.coupleId && w.inviteToken && (
+                          <button
+                            onClick={() => {
+                              const url = `${window.location.origin}/join/${w.inviteToken}`;
+                              setInviteModal({ url, names: namesNote });
+                            }}
+                            title="שליחת קישור לזוג"
+                            style={{ background: "transparent", border: "1px solid #EFEDE7", borderRadius: 9999, padding: "5px 12px", fontSize: 12, color: "#5D6861", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#3F4842"; (e.currentTarget as HTMLButtonElement).style.color = "#3F4842"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#EFEDE7"; (e.currentTarget as HTMLButtonElement).style.color = "#5D6861"; }}
+                          >
+                            <span style={{ width: 12, height: 12 }}><IcoLink /></span>
+                            קישור לזוג
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#8B8B85" }}>
+                <div style={{ width: 48, height: 48, margin: "0 auto 12px", color: "#EFEDE7" }}><IcoCalendar /></div>
+                <p style={{ fontSize: 14, marginBottom: 4 }}>עדיין אין חתונות מתוכננות</p>
+                <p style={{ fontSize: 12, opacity: 0.7 }}>לחצו "חתונה חדשה" כדי להתחיל</p>
+              </div>
+            )}
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-            {[
-              { name1: "נועה", name2: "אורי", date: "27.06.2025", guests: 280, confirmed: 241, daysLeft: 17, status: "active" },
-              { name1: "שירה", name2: "יונתן", date: "04.07.2025", guests: 320, confirmed: 198, daysLeft: 24, status: "prep" },
-              { name1: "מיכל", name2: "דוד", date: "11.07.2025", guests: 247, confirmed: 0, daysLeft: 31, status: "prep" },
-            ].map((w) => (
-              <WeddingCard key={w.name1} {...w} />
-            ))}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-/* ── Wedding Card ── */
-function WeddingCard({ name1, name2, date, guests, confirmed, daysLeft, status }: {
-  name1: string; name2: string; date: string; guests: number; confirmed: number; daysLeft: number; status: string;
-}) {
-  const pct = guests > 0 ? Math.round((confirmed / guests) * 100) : 0;
-  return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", transition: "all 0.15s", cursor: "pointer" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-        <div>
-          <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 18, color: "var(--moss)", fontWeight: 500, lineHeight: 1.2 }}>
-            {name1}{" "}
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "var(--sand)" }}>·</span>
-            {" "}{name2}
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--forest)", marginTop: 3 }}>{date}</div>
-        </div>
-        <span style={{
-          fontSize: 10,
-          padding: "3px 8px",
-          borderRadius: 3,
-          fontWeight: 500,
-          background: status === "active" ? "var(--success-bg)" : "var(--whisper)",
-          color: status === "active" ? "var(--success)" : "var(--forest)",
-        }}>
-          {daysLeft} ימים
-        </span>
+        </main>
       </div>
-      <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 20, color: "var(--moss)", lineHeight: 1 }}>{guests}</div>
-          <div style={{ fontSize: 10, color: "var(--muted)", letterSpacing: "0.5px", marginTop: 2 }}>מוזמנים</div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 20, color: "var(--success)", lineHeight: 1 }}>{confirmed}</div>
-          <div style={{ fontSize: 10, color: "var(--muted)", letterSpacing: "0.5px", marginTop: 2 }}>מאשרים</div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 20, color: "var(--moss)", lineHeight: 1 }}>{pct}%</div>
-          <div style={{ fontSize: 10, color: "var(--muted)", letterSpacing: "0.5px", marginTop: 2 }}>אישורים</div>
-        </div>
-      </div>
-      {/* Progress bar */}
-      <div style={{ height: 3, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: "var(--sage)", borderRadius: 2, transition: "width 0.5s" }} />
-      </div>
-    </div>
-  );
-}
 
-/* ── Nav Item ── */
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <a href="#" className={`veya-nav-item${active ? " active" : ""}`}>
-      {icon}
-      {label}
-    </a>
+      {/* Modals */}
+      <CreateWeddingModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={(url, names) => {
+          setShowCreate(false);
+          setInviteModal({ url, names });
+        }}
+      />
+      {inviteModal && (
+        <InviteLinkModal
+          open={true}
+          inviteUrl={inviteModal.url}
+          coupleNames={inviteModal.names}
+          onClose={() => setInviteModal(null)}
+        />
+      )}
+    </>
   );
 }
-
-/* ── Skeleton ── */
-function VenueSkeleton() {
-  return (
-    <div className="veya-app-shell">
-      <aside className="veya-sidebar" />
-      <main className="veya-main">
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {[200, 120, 80].map((w) => (
-            <div key={w} style={{ height: w, background: "var(--whisper)", borderRadius: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
-          ))}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-/* ── SVG Icons (stroke, 16×16) ── */
-function VeyaLogoSvg({ size = 26, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 10 L20 30 L32 10" />
-      <path d="M14 14 L20 22 L26 14" opacity="0.6" />
-    </svg>
-  );
-}
-function IconHome() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12 L12 4 L21 12 M5 10 V20 H19 V10" /></svg>; }
-function IconTable() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="2" /><circle cx="16" cy="8" r="2" /></svg>; }
-function IconReport() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2 H6 V22 H18 V8 L14 2 Z" /><path d="M14 2 V8 H18" /></svg>; }
-function IconClock() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7 V12 L15 14" /></svg>; }
-function IconDoc() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3 H15 L19 7 V21 H5 Z" /></svg>; }
-function IconVendor() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9 L7 5 H17 L21 9 V19 H3 Z" /></svg>; }
-function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17 L9 11 L13 15 L21 7" /></svg>; }

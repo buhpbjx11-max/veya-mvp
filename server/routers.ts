@@ -1,15 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
+  acceptWeddingInvite,
   createCouple,
   createVenue,
+  createWedding,
   getAccountContext,
   getCoupleByUserId,
   getVenueByUserId,
+  getWeddingByToken,
+  getWeddingsByVenueId,
   updateCouple,
   updateVenue,
 } from "./db";
@@ -28,20 +33,14 @@ export const appRouter = router({
     /**
      * accountContext: returns what type of account the logged-in user has.
      * Used by the router to redirect to the correct dashboard.
-     * Returns: { accountType: 'admin' | 'venue' | 'couple' | 'new' }
      */
     accountContext: protectedProcedure.query(async ({ ctx }) => {
       return getAccountContext(ctx.user.id, ctx.user.role);
     }),
   }),
 
-  // ─── Venue Registration ──────────────────────────────────────────────────
+  // ─── Venue ───────────────────────────────────────────────────────────────
   venue: router({
-    /**
-     * register: called when a venue owner completes the onboarding form.
-     * Creates a venue record linked to the logged-in user.
-     * Only allowed if the user has no existing venue.
-     */
     register: protectedProcedure
       .input(
         z.object({
@@ -54,16 +53,10 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // Prevent duplicate venue registration
         const existing = await getVenueByUserId(ctx.user.id);
         if (existing) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "לחשבון זה כבר קיים אולם רשום",
-          });
+          throw new TRPCError({ code: "CONFLICT", message: "לחשבון זה כבר קיים אולם רשום" });
         }
-
-        // Set trial end date: 14 days from now
         const trialEndsAt = new Date();
         trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
@@ -80,24 +73,15 @@ export const appRouter = router({
           trialEndsAt,
           coupleAccess: "free",
         });
-
         return { success: true, venueId };
       }),
 
-    /**
-     * me: returns the current user's venue profile.
-     */
     me: protectedProcedure.query(async ({ ctx }) => {
       const venue = await getVenueByUserId(ctx.user.id);
-      if (!venue) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא אולם לחשבון זה" });
-      }
+      if (!venue) throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא אולם לחשבון זה" });
       return venue;
     }),
 
-    /**
-     * update: update venue profile fields.
-     */
     update: protectedProcedure
       .input(
         z.object({
@@ -110,21 +94,14 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const venue = await getVenueByUserId(ctx.user.id);
-        if (!venue) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא אולם לחשבון זה" });
-        }
+        if (!venue) throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא אולם לחשבון זה" });
         await updateVenue(venue.id, input);
         return { success: true };
       }),
   }),
 
-  // ─── Couple Registration ─────────────────────────────────────────────────
+  // ─── Couple ───────────────────────────────────────────────────────────────
   couple: router({
-    /**
-     * register: called when a couple completes the onboarding form.
-     * Creates a couple record linked to the logged-in user.
-     * If inviteToken is provided, the couple becomes venue_linked.
-     */
     register: protectedProcedure
       .input(
         z.object({
@@ -133,21 +110,16 @@ export const appRouter = router({
           phone1: z.string().max(20).optional(),
           phone2: z.string().max(20).optional(),
           primaryContact: z.enum(["1", "2"]).default("1"),
-          weddingDate: z.string().optional(), // ISO date string
+          weddingDate: z.string().optional(),
           sideLabel1: z.string().max(50).optional(),
           sideLabel2: z.string().max(50).optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // Prevent duplicate couple registration
         const existing = await getCoupleByUserId(ctx.user.id);
         if (existing) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "לחשבון זה כבר קיים פרופיל זוג",
-          });
+          throw new TRPCError({ code: "CONFLICT", message: "לחשבון זה כבר קיים פרופיל זוג" });
         }
-
         const coupleId = await createCouple({
           userId: ctx.user.id,
           name1: input.name1,
@@ -157,31 +129,22 @@ export const appRouter = router({
           primaryContact: input.primaryContact,
           email: ctx.user.email ?? null,
           weddingDate: input.weddingDate ? new Date(input.weddingDate) : null,
-          type: "independent", // venue_linked is set via wedding invite flow (stage 3)
+          type: "independent", // venue_linked only via wedding invite
           sideLabels: input.sideLabel1 && input.sideLabel2
             ? [input.sideLabel1, input.sideLabel2]
             : null,
           plan: "base",
           storageStatus: "active",
         });
-
         return { success: true, coupleId };
       }),
 
-    /**
-     * me: returns the current user's couple profile.
-     */
     me: protectedProcedure.query(async ({ ctx }) => {
       const couple = await getCoupleByUserId(ctx.user.id);
-      if (!couple) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא פרופיל זוג לחשבון זה" });
-      }
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא פרופיל זוג לחשבון זה" });
       return couple;
     }),
 
-    /**
-     * update: update couple profile fields (only non-locked fields).
-     */
     update: protectedProcedure
       .input(
         z.object({
@@ -196,9 +159,7 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const couple = await getCoupleByUserId(ctx.user.id);
-        if (!couple) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא פרופיל זוג לחשבון זה" });
-        }
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא פרופיל זוג לחשבון זה" });
 
         const updateData: Record<string, unknown> = {};
         if (input.name1) updateData.name1 = input.name1;
@@ -212,6 +173,131 @@ export const appRouter = router({
 
         await updateCouple(couple.id, updateData as Parameters<typeof updateCouple>[1]);
         return { success: true };
+      }),
+  }),
+
+  // ─── Wedding ──────────────────────────────────────────────────────────────
+  wedding: router({
+    /**
+     * create: venue creates a new wedding.
+     * Generates a unique inviteToken for the couple's invite link.
+     * Returns the wedding id and the invite URL.
+     */
+    create: protectedProcedure
+      .input(
+        z.object({
+          name1: z.string().min(1).max(255),
+          name2: z.string().min(1).max(255),
+          date: z.string().optional(), // ISO date string
+          guestCount: z.number().int().min(1).max(5000).optional(),
+          notes: z.string().max(1000).optional(),
+          origin: z.string().url(), // frontend origin for building invite URL
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const venue = await getVenueByUserId(ctx.user.id);
+        if (!venue) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "רק אולמות יכולים ליצור חתונות" });
+        }
+
+        // Generate a cryptographically random invite token
+        const inviteToken = randomBytes(32).toString("hex");
+
+        const weddingId = await createWedding({
+          venueId: venue.id,
+          coupleId: null,
+          date: input.date ? new Date(input.date) : null,
+          status: "prep",
+          inviteToken,
+          // Store couple names in timeline as a note (until couple links)
+          timeline: [
+            {
+              time: "00:00",
+              label: `${input.name1} & ${input.name2}${input.guestCount ? ` — ${input.guestCount} אורחים` : ""}`,
+              addedBy: "venue",
+            },
+          ],
+        });
+
+        const inviteUrl = `${input.origin}/join/${inviteToken}`;
+        return { success: true, weddingId, inviteToken, inviteUrl };
+      }),
+
+    /**
+     * list: get all weddings for the current venue.
+     */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const venue = await getVenueByUserId(ctx.user.id);
+      if (!venue) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "רק אולמות יכולים לראות חתונות" });
+      }
+      const weddingList = await getWeddingsByVenueId(venue.id);
+      return weddingList;
+    }),
+
+    /**
+     * getByToken: public procedure — get wedding details by invite token.
+     * Used by the couple's invite page before they log in.
+     */
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const wedding = await getWeddingByToken(input.token);
+        if (!wedding) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין או פג תוקף" });
+        }
+        // Return safe subset (no internal IDs exposed to unauthenticated users)
+        return {
+          id: wedding.id,
+          date: wedding.date,
+          status: wedding.status,
+          timeline: wedding.timeline,
+          alreadyLinked: wedding.coupleId !== null,
+          inviteToken: wedding.inviteToken,
+        };
+      }),
+
+    /**
+     * acceptInvite: couple accepts the venue's invite.
+     * Marks couple as venue_linked and links them to the wedding.
+     *
+     * Iron rules:
+     * - couple.assignmentLocked must be false
+     * - couple.type is set automatically (not by user choice)
+     * - wedding must not already have a different couple
+     */
+    acceptInvite: protectedProcedure
+      .input(z.object({ token: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "יש להשלים הרשמה כזוג לפני קבלת הזמנה",
+          });
+        }
+
+        const wedding = await getWeddingByToken(input.token);
+        if (!wedding) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין או פג תוקף" });
+        }
+
+        if (couple.assignmentLocked) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "השיוך נעול — פנו ל-VEYA לשינוי",
+          });
+        }
+
+        if (wedding.coupleId && wedding.coupleId !== couple.id) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "קישור זה כבר שויך לזוג אחר",
+          });
+        }
+
+        await acceptWeddingInvite(wedding.id, couple.id, wedding.venueId);
+        return { success: true, weddingId: wedding.id };
       }),
   }),
 });
