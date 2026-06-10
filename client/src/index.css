@@ -6,7 +6,7 @@
 /* ─── VEYA Brand Fonts ──────────────────────────────────────────────────────── */
 /* Heebo: UI body text (Hebrew + Latin)                                          */
 /* Frank Ruhl Libre: headings, elegant Hebrew display                            */
-/* Cormorant Garamond: decorative accents, couple names                          */
+/* Cormorant Garamond: wordmark, decorative accents, couple names                */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -32,11 +32,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -46,136 +41,108 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* ─── VEYA Custom Color Tokens ─────────────────────────────────────────── */
-  --color-veya-cream: var(--veya-cream);
-  --color-veya-green-light: var(--veya-green-light);
-  --color-veya-green-mid: var(--veya-green-mid);
-  --color-veya-green-dark: var(--veya-green-dark);
-  --color-veya-green-deep: var(--veya-green-deep);
-  --color-veya-sand: var(--veya-sand);
+  /* ─── VEYA Custom Tokens (for Tailwind utilities) ───────────────────────── */
+  --color-veya-cream: #F8F6F2;
+  --color-veya-mist: #DDEAE0;
+  --color-veya-sage: #A8C3B0;
+  --color-veya-sand: #D9C5A1;
+  --color-veya-forest: #5D6861;
+  --color-veya-moss: #3F4842;
+  --color-veya-charcoal: #2D2D2D;
+  --color-veya-muted: #8B8B85;
+  --color-veya-whisper: #EFEDE7;
+  --color-veya-surface: #FFFFFF;
 }
 
 :root {
-  /* ─── VEYA Brand Colors ─────────────────────────────────────────────────── */
-  /* Cream: main background                                                     */
-  --veya-cream: oklch(0.975 0.008 85);
-  /* Greens: #DDEAE0 / #A8C3B0 / #5D6861 / #3F4842                             */
-  --veya-green-light: oklch(0.92 0.025 155);
-  --veya-green-mid: oklch(0.77 0.04 155);
-  --veya-green-dark: oklch(0.44 0.04 165);
-  --veya-green-deep: oklch(0.31 0.04 165);
-  /* Sand: #D9C5A1                                                              */
-  --veya-sand: oklch(0.82 0.04 85);
+  /* ─── VEYA Exact Brand Colors (from prototype) ──────────────────────────── */
+  --cream:    #F8F6F2;
+  --mist:     #DDEAE0;
+  --sage:     #A8C3B0;
+  --sand:     #D9C5A1;
+  --forest:   #5D6861;
+  --moss:     #3F4842;
+  --charcoal: #2D2D2D;
+  --muted:    #8B8B85;
+  --whisper:  #EFEDE7;
+  --surface:  #FFFFFF;
+  --border:   #EFEDE7;
+  --border-soft: #F0EBE0;
+  --success:  #6A8E6E;
+  --success-bg: #E5EFE5;
+  --warn:     #B89A55;
+  --warn-bg:  #F5EFE0;
+  --danger:   #B85450;
+  --danger-bg: #F8ECEB;
 
-  /* ─── Semantic tokens mapped to VEYA palette ───────────────────────────── */
-  --primary: oklch(0.44 0.04 165);          /* veya-green-dark */
-  --primary-foreground: oklch(0.975 0.008 85); /* veya-cream */
-  --secondary: oklch(0.92 0.025 155);       /* veya-green-light */
-  --secondary-foreground: oklch(0.31 0.04 165); /* veya-green-deep */
-  --accent: oklch(0.82 0.04 85);            /* veya-sand */
-  --accent-foreground: oklch(0.31 0.04 165);
-  --muted: oklch(0.95 0.006 85);
-  --muted-foreground: oklch(0.5 0.025 155);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  /* ─── Tailwind/shadcn semantic tokens mapped to VEYA palette ────────────── */
+  --background: #F8F6F2;   /* cream — NEVER white */
+  --foreground: #2D2D2D;   /* charcoal */
+  --card: #FFFFFF;
+  --card-foreground: #2D2D2D;
+  --popover: #FFFFFF;
+  --popover-foreground: #2D2D2D;
+  --primary: #3F4842;      /* moss */
+  --primary-foreground: #F8F6F2;
+  --secondary: #DDEAE0;    /* mist */
+  --secondary-foreground: #3F4842;
+  --muted: #EFEDE7;        /* whisper */
+  --muted-foreground: #8B8B85;
+  --accent: #D9C5A1;       /* sand */
+  --accent-foreground: #3F4842;
+  --destructive: #B85450;
+  --destructive-foreground: #F8F6F2;
+  --border: #EFEDE7;
+  --input: #EFEDE7;
+  --ring: #A8C3B0;         /* sage */
+  --radius: 0.5rem;        /* 8px — prototype uses 4-8px */
 
-  --background: oklch(0.975 0.008 85);      /* cream */
-  --foreground: oklch(0.22 0.03 165);       /* near-black green */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 165);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 165);
-  --border: oklch(0.88 0.015 155);
-  --input: oklch(0.88 0.015 155);
-  --ring: oklch(0.44 0.04 165);
-  --radius: 0.65rem;
-
-  /* Sidebar */
-  --sidebar: oklch(0.31 0.04 165);          /* veya-green-deep */
-  --sidebar-foreground: oklch(0.975 0.008 85);
-  --sidebar-primary: oklch(0.82 0.04 85);   /* sand */
-  --sidebar-primary-foreground: oklch(0.31 0.04 165);
-  --sidebar-accent: oklch(0.38 0.04 165);
-  --sidebar-accent-foreground: oklch(0.975 0.008 85);
-  --sidebar-border: oklch(0.38 0.04 165);
-  --sidebar-ring: oklch(0.82 0.04 85);
-
-  /* Charts */
-  --chart-1: oklch(0.77 0.04 155);
-  --chart-2: oklch(0.44 0.04 165);
-  --chart-3: oklch(0.31 0.04 165);
-  --chart-4: oklch(0.82 0.04 85);
-  --chart-5: oklch(0.92 0.025 155);
+  /* Sidebar = moss */
+  --sidebar: #3F4842;
+  --sidebar-foreground: #F8F6F2;
+  --sidebar-primary: #D9C5A1;
+  --sidebar-primary-foreground: #3F4842;
+  --sidebar-accent: rgba(168, 195, 176, 0.18);
+  --sidebar-accent-foreground: #F8F6F2;
+  --sidebar-border: rgba(248, 246, 242, 0.1);
+  --sidebar-ring: #A8C3B0;
 }
 
-.dark {
-  --primary: oklch(0.77 0.04 155);
-  --primary-foreground: oklch(0.22 0.03 165);
-  --secondary: oklch(0.31 0.04 165);
-  --secondary-foreground: oklch(0.92 0.025 155);
-  --accent: oklch(0.82 0.04 85);
-  --accent-foreground: oklch(0.22 0.03 165);
-  --muted: oklch(0.28 0.03 165);
-  --muted-foreground: oklch(0.65 0.025 155);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --background: oklch(0.18 0.025 165);
-  --foreground: oklch(0.92 0.01 85);
-  --card: oklch(0.22 0.03 165);
-  --card-foreground: oklch(0.92 0.01 85);
-  --popover: oklch(0.22 0.03 165);
-  --popover-foreground: oklch(0.92 0.01 85);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.77 0.04 155);
-  --sidebar: oklch(0.16 0.02 165);
-  --sidebar-foreground: oklch(0.92 0.01 85);
-  --sidebar-primary: oklch(0.82 0.04 85);
-  --sidebar-primary-foreground: oklch(0.22 0.03 165);
-  --sidebar-accent: oklch(0.22 0.03 165);
-  --sidebar-accent-foreground: oklch(0.92 0.01 85);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.77 0.04 155);
-  --chart-1: oklch(0.77 0.04 155);
-  --chart-2: oklch(0.44 0.04 165);
-  --chart-3: oklch(0.31 0.04 165);
-  --chart-4: oklch(0.82 0.04 85);
-  --chart-5: oklch(0.92 0.025 155);
-}
+/* No dark mode for VEYA — always light cream theme */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   html {
-    /* RTL direction set globally */
     direction: rtl;
-    font-family: 'Heebo', 'Arial', sans-serif;
+    font-family: 'Heebo', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Heebo', 'Arial', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Heebo', -apple-system, sans-serif;
+    line-height: 1.6;
+    text-align: right;
+    direction: rtl;
   }
-  h1, h2, h3 {
-    font-family: 'Frank Ruhl Libre', 'Georgia', serif;
-    font-weight: 500;
+  h1, h2, h3, h4 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
   }
   /* Button press micro-interaction */
-  button:not(:disabled):active,
-  [role="button"]:not([aria-disabled="true"]):active {
+  button:not(:disabled):active {
     transform: scale(0.97);
     transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
   }
@@ -189,61 +156,418 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
-
   .flex {
     min-height: 0;
     min-width: 0;
   }
-
   @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
   }
-
   @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem;
-      padding-right: 2rem;
-      max-width: 1280px;
-    }
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
   }
 
-  /* ─── VEYA Typography Utilities ─────────────────────────────────────────── */
+  /* ─── VEYA Typography ────────────────────────────────────────────────────── */
   .font-display {
-    font-family: 'Frank Ruhl Libre', 'Georgia', serif;
+    font-family: 'Frank Ruhl Libre', serif;
   }
   .font-decorative {
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-family: 'Cormorant Garamond', serif;
   }
   .font-body {
-    font-family: 'Heebo', 'Arial', sans-serif;
+    font-family: 'Heebo', -apple-system, sans-serif;
   }
 
-  /* ─── VEYA Card Styles ───────────────────────────────────────────────────── */
+  /* ─── VEYA Logo ──────────────────────────────────────────────────────────── */
+  .veya-wordmark {
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 6px;
+    font-size: 22px;
+    color: var(--cream);
+  }
+  .veya-wordmark-dark {
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 6px;
+    font-size: 22px;
+    color: var(--moss);
+  }
+  .veya-logo-svg {
+    color: var(--sand);
+  }
+
+  /* ─── VEYA Cards ─────────────────────────────────────────────────────────── */
   .veya-card {
-    @apply bg-card rounded-xl border border-border shadow-sm;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
   }
   .veya-card-cream {
-    background-color: var(--veya-cream);
-    @apply rounded-xl border border-border shadow-sm;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .veya-card-moss {
+    background: var(--moss);
+    color: var(--cream);
+    border-radius: 8px;
   }
 
-  /* ─── Smooth entrance animations ────────────────────────────────────────── */
+  /* ─── VEYA Buttons ───────────────────────────────────────────────────────── */
+  .veya-btn-primary {
+    background: var(--moss);
+    color: var(--cream);
+    border: none;
+    border-radius: 4px;
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  .veya-btn-primary:hover { background: var(--charcoal); }
+  .veya-btn-primary svg { width: 14px; height: 14px; }
+
+  .veya-btn-secondary {
+    background: transparent;
+    color: var(--moss);
+    border: 1px solid var(--forest);
+    border-radius: 4px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  .veya-btn-secondary:hover { background: var(--whisper); }
+
+  /* ─── VEYA Form Inputs ───────────────────────────────────────────────────── */
+  .veya-input {
+    width: 100%;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--moss);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .veya-input:focus { border-color: var(--sage); background: var(--surface); }
+  .veya-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--moss);
+    margin-bottom: 7px;
+  }
+
+  /* ─── VEYA OAuth Button ──────────────────────────────────────────────────── */
+  .veya-oauth-btn {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--moss);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .veya-oauth-btn:hover { background: var(--cream); border-color: var(--sage); }
+  .veya-oauth-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* ─── VEYA Divider ───────────────────────────────────────────────────────── */
+  .veya-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .veya-divider::before, .veya-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── VEYA Auth Shell (split-screen) ────────────────────────────────────── */
+  .veya-auth-shell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+  }
+  .veya-brand-panel {
+    background: var(--moss);
+    color: var(--cream);
+    padding: 50px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .veya-brand-panel::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: -100px;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, var(--sand) 0%, transparent 70%);
+    opacity: 0.1;
+    pointer-events: none;
+  }
+  .veya-brand-panel::after {
+    content: '';
+    position: absolute;
+    bottom: -120px; right: -80px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, var(--sage) 0%, transparent 70%);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+  .veya-form-panel {
+    background: var(--surface);
+    padding: 50px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+  }
+  .veya-form-stage {
+    max-width: 380px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media (max-width: 900px) {
+    .veya-auth-shell { grid-template-columns: 1fr; }
+    .veya-brand-panel { padding: 40px 32px; min-height: 220px; }
+    .veya-form-panel { padding: 40px 32px; }
+  }
+
+  /* ─── VEYA App Shell (sidebar layout) ───────────────────────────────────── */
+  .veya-app-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+  }
+  .veya-sidebar {
+    background: var(--moss);
+    padding: 28px 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .veya-main {
+    background: var(--background);
+    padding: 36px 44px 60px;
+    overflow-x: hidden;
+  }
+  @media (max-width: 768px) {
+    .veya-app-shell { grid-template-columns: 1fr; }
+    .veya-sidebar { display: none; }
+    .veya-main { padding: 24px 20px 40px; }
+  }
+
+  /* ─── VEYA Sidebar Nav ───────────────────────────────────────────────────── */
+  .veya-nav-item {
+    padding: 10px 12px;
+    color: rgba(248, 246, 242, 0.7);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 13.5px;
+    margin-bottom: 2px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .veya-nav-item:hover { background: rgba(168, 195, 176, 0.1); color: var(--cream); }
+  .veya-nav-item.active {
+    background: rgba(168, 195, 176, 0.18);
+    color: var(--cream);
+    border-right: 2px solid var(--sand);
+  }
+  .veya-nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .veya-nav-section {
+    font-size: 10px;
+    color: rgba(248, 246, 242, 0.45);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 12px;
+    margin: 20px 0 8px;
+  }
+  .veya-nav-badge {
+    margin-right: auto;
+    background: var(--sand);
+    color: var(--moss);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+
+  /* ─── VEYA Page Header ───────────────────────────────────────────────────── */
+  .veya-page-eyebrow {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .veya-page-eyebrow::before { content: "• "; opacity: 0.6; }
+  .veya-page-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 32px;
+    color: var(--moss);
+    margin-bottom: 6px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
+  .veya-page-subtitle {
+    font-size: 14px;
+    color: var(--forest);
+    line-height: 1.7;
+  }
+
+  /* ─── VEYA Stat Card ─────────────────────────────────────────────────────── */
+  .veya-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .veya-stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .veya-stat-label svg { width: 13px; height: 13px; opacity: 0.6; }
+  .veya-stat-value {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 32px;
+    color: var(--moss);
+    font-weight: 400;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .veya-stat-trend {
+    font-size: 11.5px;
+    color: var(--forest);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ─── VEYA Section Header ────────────────────────────────────────────────── */
+  .veya-section-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 22px;
+    color: var(--moss);
+    font-weight: 500;
+  }
+  .veya-section-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ─── VEYA Hero Card (moss bg) ───────────────────────────────────────────── */
+  .veya-hero-card {
+    background: var(--moss);
+    color: var(--cream);
+    border-radius: 8px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .veya-hero-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; left: -30px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, var(--sage) 0%, transparent 70%);
+    opacity: 0.18;
+    pointer-events: none;
+  }
+
+  /* ─── VEYA Eyebrow (decorative italic) ──────────────────────────────────── */
+  .veya-eyebrow {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--sand);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  /* ─── VEYA Botanical SVG decoration ─────────────────────────────────────── */
+  .veya-botanical {
+    position: absolute;
+    bottom: 100px;
+    left: 14px;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+
+  /* ─── VEYA Sidebar Avatar ────────────────────────────────────────────────── */
+  .veya-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--sand);
+    color: var(--moss);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+    font-family: 'Frank Ruhl Libre', serif;
+  }
+
+  /* ─── Animations ─────────────────────────────────────────────────────────── */
   @media (prefers-reduced-motion: no-preference) {
     .animate-fade-in {
-      animation: fadeIn 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      animation: veyaFadeIn 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
     }
     .animate-slide-up {
-      animation: slideUp 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      animation: veyaSlideUp 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
     }
-    @keyframes fadeIn {
+    @keyframes veyaFadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
     }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(12px); }
+    @keyframes veyaSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
   }
