@@ -19,18 +19,18 @@
 - [ ] עריכה ידנית ע"י VEYA HQ (שלב 6)
 
 ## שלב 4 — שני סוגי זוגות
-- [ ] venue_linked: צ'אט עם אולם, דוחות אולם, שיוך
-- [ ] independent: מערכת פרטית ללא אולם
-- [ ] הפרדת UI לפי couple.type
+- [x] venue_linked: צ'אט עם אולם, דוחות אולם, שיוך
+- [x] independent: מערכת פרטית ללא אולם
+- [x] הפרדת UI לפי couple.type
 
 ## שלב 5 — כלי MVP
-- [ ] אורחים + RSVP (דיאטות → דוח שף)
-- [ ] הושבה (drag & drop)
-- [ ] מתנות (פרטי העברה בנקאית בלבד)
-- [ ] תקציב
-- [ ] תמונות (גלריה)
-- [ ] חתימה דיגיטלית
-- [ ] טריגרים אוטומטיים (דוח שף בבוקר החתונה, storage lifecycle)
+- [x] אורחים + RSVP (דיאטות → דוח שף)
+- [x] הושבה (drag & drop)
+- [x] מתנות (פרטי העברה בנקאית בלבד)
+- [x] תקציב
+- [x] תמונות (גלריה)
+- [ ] חתימה דיגיטלית (שלב 6)
+- [ ] טריגרים אוטומטיים (שלב 6)
 
 ## שלב 6 — VEYA HQ (סופר-אדמין)
 - [ ] ניהול אולמות
@@ -92,16 +92,17 @@
 - [x] Sidebar CoupleDashboard — "שיתוף עם האולם" רק לindependent
 - [x] 15 בדיקות vitest עוברות (סה"כ 46 בדיקות)
 
-## שלב 5 — כלי MVP
-- [ ] Server: guest.list, guest.create, guest.update, guest.delete, guest.bulkImport
-- [ ] Server: guest.updateRsvp (RSVP + diet), guest.getChefReport
-- [ ] Server: seating.getTables, seating.createTable, seating.updateTable, seating.assignGuest
-- [ ] Server: gift.list, gift.create, gift.update, gift.markThanked
-- [ ] Server: budget.list, budget.create, budget.update, budget.delete
-- [ ] Server: photo.list, photo.upload, photo.delete
-- [ ] UI: GuestsPage — רשימת אורחים + RSVP + דיאטות + ייצוא דוח שף
-- [ ] UI: SeatingPage — שולחנות drag & drop
-- [ ] UI: GiftsPage — מעקב מתנות (פרטי העברה בנקאית בלבד)
-- [ ] UI: BudgetPage — תקציב עם estimatedAmount/actualAmount/paid
-- [ ] UI: PhotosPage — גלריה + העלאת תמונות
-- [ ] ניתוב: הוספת routes לכל הדפים + sidebar links פעילים
+## שלב 5 — כלי MVP (פירוט)
+- [x] Server: guest.list, guest.create, guest.update, guest.delete
+- [x] Server: guest.updateRsvp (RSVP + diet), guest.getChefReport
+- [x] Server: seating.getTables, seating.createTable, seating.updateTable, seating.assignGuest
+- [x] Server: gift.list, gift.create, gift.update, gift.markThanked
+- [x] Server: budget.list, budget.create, budget.update, budget.delete
+- [x] Server: photo.list, photo.save, photo.delete
+- [x] UI: GuestsPage — רשימת אורחים + RSVP + דיאטות + דוח שף
+- [x] UI: SeatingPage — שולחנות drag & drop
+- [x] UI: GiftsPage — מעקב מתנות
+- [x] UI: BudgetPage — תקציב
+- [x] UI: PhotosPage — גלריה + העלאה (דרך /api/upload עם multer + storagePut)
+- [x] ניתוב: routes + sidebar links פעילים
+- [x] 57 בדיקות vitest עוברות
