@@ -8,10 +8,13 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   acceptWeddingInvite,
   createCouple,
+  createMessage,
   createVenue,
   createWedding,
   getAccountContext,
   getCoupleByUserId,
+  getMessagesByConversation,
+  getVenueById,
   getVenueByUserId,
   getWeddingByToken,
   getWeddingsByVenueId,
@@ -98,6 +101,25 @@ export const appRouter = router({
         await updateVenue(venue.id, input);
         return { success: true };
       }),
+
+    /**
+     * getById: get venue info by id (for couple to see their linked venue).
+     * Public-ish: only returns safe fields.
+     */
+    getById: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        const venue = await getVenueById(input.id);
+        if (!venue) throw new TRPCError({ code: "NOT_FOUND", message: "אולם לא נמצא" });
+        // Return safe public fields only
+        return {
+          id: venue.id,
+          name: venue.name,
+          region: venue.region,
+          phone: venue.phone,
+          email: venue.email,
+        };
+      }),
   }),
 
   // ─── Couple ───────────────────────────────────────────────────────────────
@@ -173,6 +195,69 @@ export const appRouter = router({
 
         await updateCouple(couple.id, updateData as Parameters<typeof updateCouple>[1]);
         return { success: true };
+      }),
+  }),
+
+  // ─── Messages (venue ↔ couple chat) ────────────────────────────────────────
+  message: router({
+    /**
+     * list: get messages for the couple↔venue conversation.
+     * Only available to venue_linked couples and their venue.
+     */
+    list: protectedProcedure
+      .input(z.object({ weddingId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        // Allow both couple and venue to read messages
+        const couple = await getCoupleByUserId(ctx.user.id);
+        const venue = await getVenueByUserId(ctx.user.id);
+
+        if (couple) {
+          if (couple.type !== "venue_linked") {
+            throw new TRPCError({ code: "FORBIDDEN", message: "צ'אט זמין רק לזוגות מקושרים לאולם" });
+          }
+        } else if (!venue) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "גישה נדחתה" });
+        }
+
+        const conversationId = `wedding_${input.weddingId}`;
+        return getMessagesByConversation(conversationId, "venue_couple");
+      }),
+
+    /**
+     * send: send a message in the couple↔venue conversation.
+     * Only venue_linked couples and their venue can send.
+     */
+    send: protectedProcedure
+      .input(
+        z.object({
+          weddingId: z.number().int().positive(),
+          content: z.string().min(1).max(2000),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        const venue = await getVenueByUserId(ctx.user.id);
+
+        let senderType: "couple" | "venue";
+        if (couple) {
+          if (couple.type !== "venue_linked") {
+            throw new TRPCError({ code: "FORBIDDEN", message: "צ'אט זמין רק לזוגות מקושרים לאולם" });
+          }
+          senderType = "couple";
+        } else if (venue) {
+          senderType = "venue";
+        } else {
+          throw new TRPCError({ code: "FORBIDDEN", message: "גישה נדחתה" });
+        }
+
+        const conversationId = `wedding_${input.weddingId}`;
+        const messageId = await createMessage({
+          conversationId,
+          senderId: ctx.user.id,
+          conversationType: "venue_couple",
+          content: input.content,
+        });
+        return { success: true, messageId };
       }),
   }),
 
@@ -256,6 +341,22 @@ export const appRouter = router({
           inviteToken: wedding.inviteToken,
         };
       }),
+
+    /**
+     * forCouple: get the wedding linked to the current couple.
+     * Only works for venue_linked couples.
+     */
+    forCouple: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple || couple.type !== "venue_linked") return null;
+      // Find the wedding where coupleId = couple.id
+      const db = await (await import("./db")).getDb();
+      if (!db) return null;
+      const { weddings } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const result = await db.select().from(weddings).where(eq(weddings.coupleId, couple.id)).limit(1);
+      return result.length > 0 ? result[0] : null;
+    }),
 
     /**
      * acceptInvite: couple accepts the venue's invite.

@@ -3,13 +3,16 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   Couple,
   InsertCouple,
+  InsertMessage,
   InsertUser,
   InsertVenue,
   InsertWedding,
+  Message,
   User,
   Venue,
   Wedding,
   couples,
+  messages,
   users,
   venues,
   weddings,
@@ -244,6 +247,37 @@ export async function acceptWeddingInvite(
     .update(couples)
     .set({ type: "venue_linked", venueId })
     .where(eq(couples.id, coupleId));
+}
+
+// ─── Messages ──────────────────────────────────────────────────────────────
+
+export async function createMessage(data: InsertMessage): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(messages).values(data);
+  // @ts-ignore — insertId exists on mysql2 result
+  return result[0].insertId as number;
+}
+
+/**
+ * Get messages for a conversation.
+ * conversationId format: "wedding_{weddingId}" for venue↔couple chat
+ */
+export async function getMessagesByConversation(
+  conversationId: string,
+  conversationType: Message["conversationType"]
+): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        eq(messages.conversationType, conversationType)
+      )
+    );
 }
 
 // ─── Account Context ──────────────────────────────────────────────────────────

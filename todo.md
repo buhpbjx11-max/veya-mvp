@@ -68,3 +68,13 @@
 - [x] עדכון VenueDashboard — חתונות אמיתיות מה-DB + InviteLinkModal
 - [ ] עדכון CoupleDashboard — שם האולם אם venue_linked (שלב 4)
 - [x] בדיקות vitest לזרימה המלאה — 11 בדיקות עוברות
+
+## שלב 4 — שני סוגי זוגות (פירוט)
+- [ ] procedure: couple.me — מחזיר couple + venue info אם venue_linked
+- [ ] procedure: couple.getVenueInfo — פרטי האולם (שם, טלפון, איש קשר)
+- [ ] procedure: message.list + message.send — צ'אט זוג↔אולם (venue_linked בלבד)
+- [ ] UI: CoupleDashboard — venue_linked: שם האולם, כפתור צ'אט, כפתור "דוחות אולם"
+- [ ] UI: CoupleDashboard — independent: banner "אין אולם מקושר" + כפתור "קישור לאולם"
+- [ ] UI: ChatPage — דף צ'אט עם האולם (venue_linked בלבד)
+- [ ] הגנה: כל procedure תלוי-אולם בודק couple.type === venue_linked
+- [ ] בדיקות vitest לשני סוגי הזוגות
