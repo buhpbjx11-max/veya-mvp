@@ -33,13 +33,13 @@
 - [ ] טריגרים אוטומטיים (שלב 6)
 
 ## שלב 6 — VEYA HQ (סופר-אדמין)
-- [ ] ניהול אולמות
-- [ ] ניהול זוגות
-- [ ] ניהול מנויים וחשבוניות
-- [ ] CRM לידים
-- [ ] הענקת גישה חיצונית (עורך דין / רואה חשבון)
-- [ ] kill-switch לכלים
-- [ ] סטטיסטיקות משוב
+- [x] ניהול אולמות
+- [x] ניהול זוגות
+- [x] ניהול מנויים וחשבוניות
+- [x] CRM לידים
+- [x] הענקת גישה חיצונית (עורך דין / רואה חשבון)
+- [x] kill-switch לכלים
+- [x] סטטיסטיקות משוב
 
 ## שלב 7 — עיצוב RTL
 - [ ] RTL מלא, עברית בכל ה-UI
@@ -106,3 +106,15 @@
 - [x] UI: PhotosPage — גלריה + העלאה (דרך /api/upload עם multer + storagePut)
 - [x] ניתוב: routes + sidebar links פעילים
 - [x] 57 בדיקות vitest עוברות
+
+## שלב 6 — VEYA HQ (סופר-אדמין)
+- [x] Server: admin.listVenues (כל האולמות + plan/status/trial)
+- [x] Server: admin.listCouples (כל הזוגות + type/venue)
+- [x] Server: admin.updateVenueStatus (kill-switch: active/locked/cancelled)
+- [x] Server: admin.listLeads + admin.updateLead (CRM)
+- [x] Server: admin.listAccessGrants + admin.approveAccessGrant
+- [x] Server: admin.getStats (KPIs: venues, couples, active weddings, revenue)
+- [x] UI: AdminDashboard — 5 tabs: סטטיסטיקות, אולמות, זוגות, CRM, גישות
+- [x] UI: kill-switch per venue (active/locked/cancelled)
+- [x] UI: CRM leads table עם stage management
+- [x] בדיקות vitest לשלב 6

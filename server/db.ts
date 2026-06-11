@@ -493,3 +493,120 @@ export async function deletePhoto(id: number, coupleId: number): Promise<void> {
   if (!db) throw new Error("Database not available");
   await db.delete(photos).where(and(eq(photos.id, id), eq(photos.coupleId, coupleId)));
 }
+
+// ─── Admin (VEYA HQ) ──────────────────────────────────────────────────────────
+
+import {
+  Lead,
+  InsertLead,
+  AccessGrant,
+  InsertAccessGrant,
+  leads,
+  accessGrants,
+  subscriptions,
+} from "../drizzle/schema";
+
+export async function adminListVenues(): Promise<Venue[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(venues).orderBy(venues.createdAt);
+}
+
+export async function adminListCouples(): Promise<Couple[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(couples).orderBy(couples.createdAt);
+}
+
+export async function adminUpdateVenueStatus(
+  venueId: number,
+  subStatus: "trial" | "active" | "locked" | "cancelled",
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(venues).set({ subStatus }).where(eq(venues.id, venueId));
+}
+
+export async function adminGetStats(): Promise<{
+  totalVenues: number;
+  activeVenues: number;
+  trialVenues: number;
+  lockedVenues: number;
+  totalCouples: number;
+  venueLinkedCouples: number;
+  independentCouples: number;
+  totalWeddings: number;
+}> {
+  const db = await getDb();
+  if (!db) return {
+    totalVenues: 0, activeVenues: 0, trialVenues: 0, lockedVenues: 0,
+    totalCouples: 0, venueLinkedCouples: 0, independentCouples: 0, totalWeddings: 0,
+  };
+  const allVenues = await db.select().from(venues);
+  const allCouples = await db.select().from(couples);
+  const allWeddings = await db.select().from(weddings);
+  return {
+    totalVenues: allVenues.length,
+    activeVenues: allVenues.filter(v => v.subStatus === "active").length,
+    trialVenues: allVenues.filter(v => v.subStatus === "trial").length,
+    lockedVenues: allVenues.filter(v => v.subStatus === "locked").length,
+    totalCouples: allCouples.length,
+    venueLinkedCouples: allCouples.filter(c => c.type === "venue_linked").length,
+    independentCouples: allCouples.filter(c => c.type === "independent").length,
+    totalWeddings: allWeddings.length,
+  };
+}
+
+// Leads (CRM)
+export async function adminListLeads(): Promise<Lead[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(leads).orderBy(leads.createdAt);
+}
+
+export async function adminCreateLead(data: InsertLead): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(leads).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function adminUpdateLead(
+  id: number,
+  data: Partial<InsertLead>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(leads).set(data).where(eq(leads.id, id));
+}
+
+export async function adminDeleteLead(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(leads).where(eq(leads.id, id));
+}
+
+// Access Grants
+export async function adminListAccessGrants(): Promise<AccessGrant[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(accessGrants).orderBy(accessGrants.createdAt);
+}
+
+export async function adminCreateAccessGrant(data: InsertAccessGrant): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(accessGrants).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function adminUpdateAccessGrant(
+  id: number,
+  data: Partial<InsertAccessGrant>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(accessGrants).set(data).where(eq(accessGrants.id, id));
+}

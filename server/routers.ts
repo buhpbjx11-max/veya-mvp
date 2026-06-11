@@ -7,6 +7,17 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   acceptWeddingInvite,
+  adminCreateAccessGrant,
+  adminCreateLead,
+  adminDeleteLead,
+  adminGetStats,
+  adminListAccessGrants,
+  adminListCouples,
+  adminListLeads,
+  adminListVenues,
+  adminUpdateAccessGrant,
+  adminUpdateLead,
+  adminUpdateVenueStatus,
   createBudgetItem,
   createCouple,
   createGuest,
@@ -42,6 +53,14 @@ import {
   updateVenue,
   updateVenueShare,
 } from "./db";
+
+// ─── Admin procedure ──────────────────────────────────────────────────────────
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "VEYA HQ only" });
+  }
+  return next({ ctx });
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -910,7 +929,108 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Admin (VEYA HQ) ────────────────────────────────────────────────────
+  admin: router({
+    getStats: adminProcedure.query(async () => {
+      return adminGetStats();
+    }),
+
+    listVenues: adminProcedure.query(async () => {
+      return adminListVenues();
+    }),
+
+    updateVenueStatus: adminProcedure
+      .input(z.object({
+        venueId: z.number().int().positive(),
+        subStatus: z.enum(["trial", "active", "locked", "cancelled"]),
+      }))
+      .mutation(async ({ input }) => {
+        await adminUpdateVenueStatus(input.venueId, input.subStatus);
+        return { success: true };
+      }),
+
+    listCouples: adminProcedure.query(async () => {
+      return adminListCouples();
+    }),
+
+    listLeads: adminProcedure.query(async () => {
+      return adminListLeads();
+    }),
+
+    createLead: adminProcedure
+      .input(z.object({
+        venueName: z.string().optional(),
+        contact: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional(),
+        source: z.enum(["contact_form", "manual", "outreach"]).default("manual"),
+        stage: z.enum(["lead", "meeting", "proposal", "closed"]).default("lead"),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await adminCreateLead(input);
+        return { success: true, id };
+      }),
+
+    updateLead: adminProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        venueName: z.string().optional(),
+        contact: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional(),
+        source: z.enum(["contact_form", "manual", "outreach"]).optional(),
+        stage: z.enum(["lead", "meeting", "proposal", "closed"]).optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await adminUpdateLead(id, data);
+        return { success: true };
+      }),
+
+    deleteLead: adminProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        await adminDeleteLead(input.id);
+        return { success: true };
+      }),
+
+    listAccessGrants: adminProcedure.query(async () => {
+      return adminListAccessGrants();
+    }),
+
+    createAccessGrant: adminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        role: z.enum(["legal", "cpa", "tax"]),
+        scope: z.string().optional(),
+        permission: z.enum(["view", "download", "edit"]).default("view"),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await adminCreateAccessGrant({
+          ...input,
+          status: "active",
+          approvedByBar: true,
+        });
+        return { success: true, id };
+      }),
+
+    updateAccessGrant: adminProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        status: z.enum(["pending", "active", "revoked"]).optional(),
+        permission: z.enum(["view", "download", "edit"]).optional(),
+        approvedByBar: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await adminUpdateAccessGrant(id, data);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
-

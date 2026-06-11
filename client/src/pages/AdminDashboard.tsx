@@ -1,201 +1,362 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLocation } from "wouter";
 
-/**
- * VEYA HQ Admin Dashboard — charcoal sidebar (prototype: veya_hq.html)
- * Only accessible to users with role === 'admin'
- */
+type Tab = "stats" | "venues" | "couples" | "leads" | "access";
+
+const statusLabel: Record<string, string> = { trial: "ניסיון", active: "פעיל", locked: "נעול", cancelled: "בוטל" };
+const statusBg: Record<string, string> = { trial: "#D9C5A133", active: "#A8C3B033", locked: "#e8a0a033", cancelled: "#ccc3" };
+const statusFg: Record<string, string> = { trial: "#5D6861", active: "#3F4842", locked: "#c0392b", cancelled: "#888" };
+const roleLabel: Record<string, string> = { legal: "עורך דין", cpa: "רואה חשבון", tax: "יועץ מס" };
+
 export default function AdminDashboard() {
-  const { user, logout } = useAuth({ redirectOnUnauthenticated: true });
   const [, navigate] = useLocation();
+  const { user, logout } = useAuth({ redirectOnUnauthenticated: true });
+  const [tab, setTab] = useState<Tab>("stats");
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [leadForm, setLeadForm] = useState({ venueName: "", contact: "", phone: "", email: "", notes: "", stage: "lead" as const, source: "manual" as const });
+  const [showAccessForm, setShowAccessForm] = useState(false);
+  const [accessForm, setAccessForm] = useState({ name: "", email: "", role: "legal" as const, scope: "", permission: "view" as const });
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
+  const utils = trpc.useUtils();
+  const statsQ = trpc.admin?.getStats?.useQuery(undefined, { enabled: tab === "stats" });
+  const venuesQ = trpc.admin?.listVenues?.useQuery(undefined, { enabled: tab === "venues" });
+  const couplesQ = trpc.admin?.listCouples?.useQuery(undefined, { enabled: tab === "couples" });
+  const leadsQ = trpc.admin?.listLeads?.useQuery(undefined, { enabled: tab === "leads" });
+  const accessQ = trpc.admin?.listAccessGrants?.useQuery(undefined, { enabled: tab === "access" });
+
+  const updateVenueStatus = trpc.admin?.updateVenueStatus?.useMutation({ onSuccess: () => utils.admin?.listVenues?.invalidate() });
+  const createLead = trpc.admin?.createLead?.useMutation({ onSuccess: () => { utils.admin?.listLeads?.invalidate(); setShowLeadForm(false); setLeadForm({ venueName: "", contact: "", phone: "", email: "", notes: "", stage: "lead", source: "manual" }); } });
+  const updateLead = trpc.admin?.updateLead?.useMutation({ onSuccess: () => utils.admin?.listLeads?.invalidate() });
+  const deleteLead = trpc.admin?.deleteLead?.useMutation({ onSuccess: () => utils.admin?.listLeads?.invalidate() });
+  const createAccess = trpc.admin?.createAccessGrant?.useMutation({ onSuccess: () => { utils.admin?.listAccessGrants?.invalidate(); setShowAccessForm(false); } });
+  const updateAccess = trpc.admin?.updateAccessGrant?.useMutation({ onSuccess: () => utils.admin?.listAccessGrants?.invalidate() });
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "stats", label: "סטטיסטיקות" },
+    { id: "venues", label: "אולמות" },
+    { id: "couples", label: "זוגות" },
+    { id: "leads", label: "CRM לידים" },
+    { id: "access", label: "גישות חיצוניות" },
+  ];
 
   if (!user) return null;
 
   return (
-    <div className="veya-app-shell">
-      {/* ── Sidebar (charcoal for HQ) ── */}
-      <aside style={{
-        background: "var(--charcoal)",
-        padding: "28px 18px",
-        position: "sticky",
-        top: 0,
-        height: "100vh",
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36, padding: "0 6px" }}>
-          <VeyaLogoSvg size={26} color="var(--sand)" />
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "var(--cream)", letterSpacing: 5 }}>VEYA</span>
-          <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 3, background: "var(--sand)", color: "var(--charcoal)", fontWeight: 600, letterSpacing: 0.5 }}>HQ</span>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--cream)", direction: "rtl", fontFamily: "var(--font-body)" }}>
+      {/* ── Sidebar ── */}
+      <aside style={{ width: 240, background: "#2D2D2D", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+        <div style={{ padding: "28px 24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ fontFamily: "var(--font-wordmark)", fontSize: 26, color: "#F8F6F2", letterSpacing: 2 }}>VEYA</div>
+          <div style={{ fontSize: 11, color: "#A8C3B0", marginTop: 2, letterSpacing: 1 }}>HQ — ניהול פנימי</div>
         </div>
-
-        <NavSection label="המסך שלי" />
-        <HQNavItem icon={<IconHome />} label="דשבורד" active />
-
-        <NavSection label="ניהול" />
-        <HQNavItem icon={<IconVenue />} label="אולמות" />
-        <HQNavItem icon={<IconCouple />} label="זוגות" />
-        <HQNavItem icon={<IconSubscription />} label="מנויים" />
-        <HQNavItem icon={<IconInvoice />} label="חשבוניות" />
-
-        <NavSection label="CRM" />
-        <HQNavItem icon={<IconLead />} label="לידים" />
-        <HQNavItem icon={<IconChart />} label="אנליטיקה" />
-
-        <NavSection label="מערכת" />
-        <HQNavItem icon={<IconAccess />} label="הרשאות גישה" />
-        <HQNavItem icon={<IconSettings />} label="הגדרות" />
-
-        {/* Profile */}
-        <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid rgba(248, 246, 242, 0.1)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px" }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--sand)", color: "var(--charcoal)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
-              {user.name?.slice(0, 2) ?? "AD"}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: "var(--cream)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user.name ?? "Admin"}
-              </div>
-              <div style={{ fontSize: 11, color: "rgba(248, 246, 242, 0.5)" }}>VEYA HQ</div>
-            </div>
-            <button onClick={handleLogout} title="יציאה" style={{ background: "transparent", border: "none", color: "rgba(248,246,242,0.5)", cursor: "pointer", padding: 4, borderRadius: 4 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
+        <nav style={{ flex: 1, padding: "16px 0" }}>
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%",
+              padding: "11px 24px", background: tab === t.id ? "rgba(168,195,176,0.15)" : "transparent",
+              border: "none", borderRight: tab === t.id ? "3px solid #A8C3B0" : "3px solid transparent",
+              color: tab === t.id ? "#A8C3B0" : "rgba(248,246,242,0.6)",
+              fontSize: 14, cursor: "pointer", textAlign: "right", transition: "all 0.15s",
+            }}>
+              {t.label}
             </button>
-          </div>
+          ))}
+        </nav>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ fontSize: 12, color: "rgba(248,246,242,0.5)" }}>{user.name || "Admin"}</div>
+          <button onClick={async () => { await logout(); navigate("/"); }} style={{ marginTop: 8, fontSize: 12, color: "#A8C3B0", background: "none", border: "none", cursor: "pointer", padding: 0 }}>יציאה</button>
         </div>
       </aside>
 
       {/* ── Main ── */}
-      <main className="veya-main">
-        {/* Page header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32, gap: 20, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: 13, color: "var(--muted)", letterSpacing: "1.5px", marginBottom: 6 }}>
-              • VEYA HQ
-            </div>
-            <h1 style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 32, color: "var(--moss)", fontWeight: 400, lineHeight: 1.2, marginBottom: 6 }}>
-              לוח בקרה
-            </h1>
-            <p style={{ fontSize: 14, color: "var(--forest)", lineHeight: 1.7 }}>
-              ברוכים הבאים, <strong style={{ color: "var(--moss)" }}>{user.name}</strong>
-            </p>
-          </div>
+      <main style={{ flex: 1, padding: "32px 36px", overflowY: "auto" }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 28, color: "var(--forest)", margin: 0 }}>
+            {tabs.find(t => t.id === tab)?.label}
+          </h1>
         </div>
 
-        {/* KPI Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
-          {[
-            { label: "אולמות פעילים", value: "0", trend: "ב-Trial" },
-            { label: "זוגות רשומים", value: "0", trend: "סה\"כ" },
-            { label: "הכנסה חודשית", value: "₪0", trend: "MRR" },
-            { label: "לידים חדשים", value: "0", trend: "השבוע" },
-          ].map((stat) => (
-            <div key={stat.label} className="veya-stat-card">
-              <div className="veya-stat-label">{stat.label}</div>
-              <div className="veya-stat-value">{stat.value}</div>
-              <div className="veya-stat-trend">{stat.trend}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Live activity strip */}
-        <div style={{ background: "var(--moss)", borderRadius: 8, padding: "16px 24px", marginBottom: 32, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--sage)", animation: "pulse 2s infinite" }} />
-            <span style={{ fontSize: 12, color: "var(--cream)", fontWeight: 500 }}>Live</span>
-          </div>
-          <span style={{ fontSize: 13, color: "rgba(248,246,242,0.75)" }}>
-            אין פעילות בזמן אמת כרגע — המערכת פעילה ומוכנה
-          </span>
-        </div>
-
-        {/* Modules grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-          {[
-            { title: "אולמות", sub: "ניהול חשבונות B2B", icon: <IconVenue />, count: "0 אולמות" },
-            { title: "זוגות", sub: "ניהול חשבונות B2C", icon: <IconCouple />, count: "0 זוגות" },
-            { title: "מנויים", sub: "מנויים וחיובים", icon: <IconSubscription />, count: "0 פעילים" },
-            { title: "חשבוניות", sub: "חשבוניות ותשלומים", icon: <IconInvoice />, count: "0 ממתינות" },
-            { title: "לידים", sub: "CRM ומכירות", icon: <IconLead />, count: "0 לידים" },
-            { title: "הרשאות", sub: "גישת צוות HQ", icon: <IconAccess />, count: "0 גישות" },
-          ].map((mod) => (
-            <div key={mod.title} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", cursor: "pointer", transition: "all 0.15s" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 6, background: "var(--mist)", color: "var(--moss)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16 }}>{mod.icon}</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "'Frank Ruhl Libre', serif", fontSize: 16, color: "var(--moss)", fontWeight: 500 }}>{mod.title}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{mod.sub}</div>
-                </div>
+        {/* ─── Stats ─── */}
+        {tab === "stats" && (
+          statsQ?.isLoading ? <Loader /> :
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+            {[
+              { label: "סה\"כ אולמות", value: statsQ?.data?.totalVenues ?? 0 },
+              { label: "אולמות פעילים", value: statsQ?.data?.activeVenues ?? 0, accent: "#A8C3B0" },
+              { label: "בתקופת ניסיון", value: statsQ?.data?.trialVenues ?? 0, accent: "#D9C5A1" },
+              { label: "נעולים", value: statsQ?.data?.lockedVenues ?? 0, accent: "#e8a0a0" },
+              { label: "סה\"כ זוגות", value: statsQ?.data?.totalCouples ?? 0 },
+              { label: "מקושרים לאולם", value: statsQ?.data?.venueLinkedCouples ?? 0, accent: "#A8C3B0" },
+              { label: "עצמאיים", value: statsQ?.data?.independentCouples ?? 0 },
+              { label: "סה\"כ חתונות", value: statsQ?.data?.totalWeddings ?? 0, accent: "#5D6861" },
+            ].map(s => (
+              <div key={s.label} style={{ background: "#fff", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)", border: "1px solid rgba(63,72,66,0.08)" }}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: s.accent || "var(--forest)", fontFamily: "var(--font-heading)" }}>{s.value}</div>
+                <div style={{ fontSize: 13, color: "var(--forest-light)", marginTop: 4 }}>{s.label}</div>
               </div>
-              <div style={{ fontSize: 12, color: "var(--forest)", fontWeight: 500 }}>{mod.count}</div>
+            ))}
+          </div>
+        )}
+
+        {/* ─── Venues ─── */}
+        {tab === "venues" && (
+          venuesQ?.isLoading ? <Loader /> :
+          <Table headers={["שם האולם", "אזור", "תוכנית", "סטטוס", "שינוי סטטוס"]}>
+            {venuesQ?.data?.length === 0
+              ? <EmptyRow cols={5} text="אין אולמות עדיין" />
+              : venuesQ?.data?.map(v => (
+                <tr key={v.id} style={{ borderBottom: "1px solid rgba(63,72,66,0.06)" }}>
+                  <Td bold>{v.name}</Td>
+                  <Td muted>{v.region || "—"}</Td>
+                  <Td muted style={{ textTransform: "uppercase", fontSize: 12 }}>{v.plan}</Td>
+                  <Td>
+                    <Pill bg={statusBg[v.subStatus]} fg={statusFg[v.subStatus]}>{statusLabel[v.subStatus]}</Pill>
+                  </Td>
+                  <Td>
+                    <select value={v.subStatus} onChange={e => updateVenueStatus?.mutate({ venueId: v.id, subStatus: e.target.value as any })}
+                      style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(63,72,66,0.2)", fontSize: 12, background: "var(--cream)", cursor: "pointer" }}>
+                      <option value="trial">ניסיון</option>
+                      <option value="active">פעיל</option>
+                      <option value="locked">נעול</option>
+                      <option value="cancelled">בוטל</option>
+                    </select>
+                  </Td>
+                </tr>
+              ))
+            }
+          </Table>
+        )}
+
+        {/* ─── Couples ─── */}
+        {tab === "couples" && (
+          couplesQ?.isLoading ? <Loader /> :
+          <Table headers={["שמות", "תאריך חתונה", "סוג", "נעול", "נוצר"]}>
+            {couplesQ?.data?.length === 0
+              ? <EmptyRow cols={5} text="אין זוגות עדיין" />
+              : couplesQ?.data?.map(c => (
+                <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,72,66,0.06)" }}>
+                  <Td bold>{c.name1} & {c.name2}</Td>
+                  <Td muted>{c.weddingDate ? new Date(c.weddingDate).toLocaleDateString("he-IL") : "—"}</Td>
+                  <Td>
+                    <Pill bg={c.type === "venue_linked" ? "#A8C3B033" : "#D9C5A133"} fg="var(--forest)">
+                      {c.type === "venue_linked" ? "מקושר לאולם" : "עצמאי"}
+                    </Pill>
+                  </Td>
+                  <Td muted style={{ fontSize: 12 }}>{c.assignmentLocked ? "נעול" : "—"}</Td>
+                  <Td muted style={{ fontSize: 12 }}>{new Date(c.createdAt).toLocaleDateString("he-IL")}</Td>
+                </tr>
+              ))
+            }
+          </Table>
+        )}
+
+        {/* ─── CRM Leads ─── */}
+        {tab === "leads" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 14, color: "var(--forest-light)" }}>{leadsQ?.data?.length || 0} לידים</div>
+              <ActionBtn onClick={() => setShowLeadForm(true)}>+ ליד חדש</ActionBtn>
             </div>
-          ))}
-        </div>
+
+            {showLeadForm && (
+              <FormCard title="ליד חדש" onClose={() => setShowLeadForm(false)}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {[["venueName", "שם האולם"], ["contact", "איש קשר"], ["phone", "טלפון"], ["email", "אימייל"]].map(([k, l]) => (
+                    <Field key={k} label={l}>
+                      <input value={(leadForm as any)[k]} onChange={e => setLeadForm(p => ({ ...p, [k]: e.target.value }))} style={inputStyle} />
+                    </Field>
+                  ))}
+                  <Field label="שלב">
+                    <select value={leadForm.stage} onChange={e => setLeadForm(p => ({ ...p, stage: e.target.value as any }))} style={inputStyle}>
+                      <option value="lead">ליד</option><option value="meeting">פגישה</option>
+                      <option value="proposal">הצעה</option><option value="closed">סגור</option>
+                    </select>
+                  </Field>
+                </div>
+                <Field label="הערות" style={{ marginTop: 12 }}>
+                  <textarea value={leadForm.notes} onChange={e => setLeadForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+                </Field>
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <ActionBtn onClick={() => createLead?.mutate(leadForm)} disabled={createLead?.isPending}>
+                    {createLead?.isPending ? "שומר..." : "שמירה"}
+                  </ActionBtn>
+                  <OutlineBtn onClick={() => setShowLeadForm(false)}>ביטול</OutlineBtn>
+                </div>
+              </FormCard>
+            )}
+
+            <Table headers={["שם האולם", "איש קשר", "טלפון", "שלב", "מקור", "פעולות"]}>
+              {leadsQ?.isLoading ? <EmptyRow cols={6} text="טוען..." /> :
+               leadsQ?.data?.length === 0 ? <EmptyRow cols={6} text="אין לידים עדיין" /> :
+               leadsQ?.data?.map(lead => (
+                <tr key={lead.id} style={{ borderBottom: "1px solid rgba(63,72,66,0.06)" }}>
+                  <Td bold>{lead.venueName || "—"}</Td>
+                  <Td muted>{lead.contact || "—"}</Td>
+                  <Td muted>{lead.phone || "—"}</Td>
+                  <Td>
+                    <select value={lead.stage} onChange={e => updateLead?.mutate({ id: lead.id, stage: e.target.value as any })}
+                      style={{ padding: "3px 8px", borderRadius: 8, border: "1px solid rgba(63,72,66,0.2)", fontSize: 12, background: "var(--cream)", cursor: "pointer" }}>
+                      <option value="lead">ליד</option><option value="meeting">פגישה</option>
+                      <option value="proposal">הצעה</option><option value="closed">סגור</option>
+                    </select>
+                  </Td>
+                  <Td muted style={{ fontSize: 12 }}>{lead.source}</Td>
+                  <Td>
+                    <DangerBtn onClick={() => { if (confirm("למחוק ליד זה?")) deleteLead?.mutate({ id: lead.id }); }}>מחיקה</DangerBtn>
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
+        )}
+
+        {/* ─── Access Grants ─── */}
+        {tab === "access" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 14, color: "var(--forest-light)" }}>גישות חיצוניות (עו"ד / רו"ח / יועץ מס)</div>
+              <ActionBtn onClick={() => setShowAccessForm(true)}>+ גישה חדשה</ActionBtn>
+            </div>
+
+            {showAccessForm && (
+              <FormCard title="גישה חדשה" onClose={() => setShowAccessForm(false)}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {[["name", "שם"], ["email", "אימייל"], ["scope", "תחום (אופציונלי)"]].map(([k, l]) => (
+                    <Field key={k} label={l}>
+                      <input value={(accessForm as any)[k]} onChange={e => setAccessForm(p => ({ ...p, [k]: e.target.value }))} style={inputStyle} />
+                    </Field>
+                  ))}
+                  <Field label="תפקיד">
+                    <select value={accessForm.role} onChange={e => setAccessForm(p => ({ ...p, role: e.target.value as any }))} style={inputStyle}>
+                      <option value="legal">עורך דין</option><option value="cpa">רואה חשבון</option><option value="tax">יועץ מס</option>
+                    </select>
+                  </Field>
+                  <Field label="הרשאה">
+                    <select value={accessForm.permission} onChange={e => setAccessForm(p => ({ ...p, permission: e.target.value as any }))} style={inputStyle}>
+                      <option value="view">צפייה</option><option value="download">הורדה</option><option value="edit">עריכה</option>
+                    </select>
+                  </Field>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <ActionBtn onClick={() => createAccess?.mutate(accessForm)} disabled={createAccess?.isPending}>
+                    {createAccess?.isPending ? "שומר..." : "אישור גישה"}
+                  </ActionBtn>
+                  <OutlineBtn onClick={() => setShowAccessForm(false)}>ביטול</OutlineBtn>
+                </div>
+              </FormCard>
+            )}
+
+            <Table headers={["שם", "אימייל", "תפקיד", "הרשאה", "סטטוס", "פעולה"]}>
+              {accessQ?.isLoading ? <EmptyRow cols={6} text="טוען..." /> :
+               accessQ?.data?.length === 0 ? <EmptyRow cols={6} text="אין גישות חיצוניות" /> :
+               accessQ?.data?.map(grant => (
+                <tr key={grant.id} style={{ borderBottom: "1px solid rgba(63,72,66,0.06)" }}>
+                  <Td bold>{grant.name}</Td>
+                  <Td muted>{grant.email}</Td>
+                  <Td muted>{roleLabel[grant.role]}</Td>
+                  <Td muted style={{ fontSize: 12 }}>{grant.permission}</Td>
+                  <Td>
+                    <Pill
+                      bg={grant.status === "active" ? "#A8C3B033" : grant.status === "revoked" ? "#e8a0a033" : "#D9C5A133"}
+                      fg={grant.status === "active" ? "#3F4842" : grant.status === "revoked" ? "#c0392b" : "#5D6861"}
+                    >
+                      {grant.status === "active" ? "פעיל" : grant.status === "revoked" ? "בוטל" : "ממתין"}
+                    </Pill>
+                  </Td>
+                  <Td>
+                    {grant.status !== "revoked" && (
+                      <DangerBtn onClick={() => updateAccess?.mutate({ id: grant.id, status: "revoked" })}>ביטול גישה</DangerBtn>
+                    )}
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
-/* ── Sub-components ── */
-function NavSection({ label }: { label: string }) {
+/* ── Micro-components ── */
+function Loader() { return <div style={{ color: "var(--forest-light)", padding: 24 }}>טוען...</div>; }
+
+function Table({ headers, children }: { headers: string[]; children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 10, color: "rgba(248, 246, 242, 0.35)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "0 12px", margin: "20px 0 8px" }}>
-      {label}
+    <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)", overflow: "hidden" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr style={{ background: "var(--cream)", borderBottom: "1px solid rgba(63,72,66,0.1)" }}>
+            {headers.map(h => <th key={h} style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "var(--forest)", fontSize: 13 }}>{h}</th>)}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
     </div>
   );
 }
 
-function HQNavItem({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) {
+function Td({ children, bold, muted, style }: { children?: React.ReactNode; bold?: boolean; muted?: boolean; style?: React.CSSProperties }) {
+  return <td style={{ padding: "12px 16px", color: muted ? "var(--forest-light)" : "var(--forest)", fontWeight: bold ? 500 : 400, ...style }}>{children}</td>;
+}
+
+function EmptyRow({ cols, text }: { cols: number; text: string }) {
+  return <tr><td colSpan={cols} style={{ padding: 24, textAlign: "center", color: "var(--forest-light)" }}>{text}</td></tr>;
+}
+
+function Pill({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
+  return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 9999, fontSize: 12, background: bg, color: fg, fontWeight: 500 }}>{children}</span>;
+}
+
+function ActionBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) {
   return (
-    <a href="#" style={{
-      padding: "10px 12px",
-      color: active ? "var(--cream)" : "rgba(248, 246, 242, 0.65)",
-      borderRadius: 4,
-      display: "flex",
-      alignItems: "center",
-      gap: 11,
-      fontSize: 13.5,
-      marginBottom: 2,
-      transition: "all 0.15s ease",
-      background: active ? "rgba(168, 195, 176, 0.15)" : "transparent",
-      borderRight: active ? "2px solid var(--sand)" : "2px solid transparent",
-      textDecoration: "none",
-    }}>
-      <div style={{ width: 16, height: 16, flexShrink: 0 }}>{icon}</div>
-      {label}
-    </a>
+    <button onClick={onClick} disabled={disabled}
+      style={{ padding: "8px 20px", borderRadius: 9999, background: "var(--forest)", color: "#F8F6F2", border: "none", fontSize: 13, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.7 : 1, fontFamily: "var(--font-body)" }}>
+      {children}
+    </button>
   );
 }
 
-/* ── SVG Icons ── */
-function VeyaLogoSvg({ size = 26, color = "currentColor" }: { size?: number; color?: string }) {
+function OutlineBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 10 L20 30 L32 10" />
-      <path d="M14 14 L20 22 L26 14" opacity="0.6" />
-    </svg>
+    <button onClick={onClick}
+      style={{ padding: "8px 20px", borderRadius: 9999, background: "transparent", color: "var(--forest)", border: "1px solid rgba(63,72,66,0.3)", fontSize: 13, cursor: "pointer", fontFamily: "var(--font-body)" }}>
+      {children}
+    </button>
   );
 }
-function IconHome() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12 L12 4 L21 12 M5 10 V20 H19 V10" /></svg>; }
-function IconVenue() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9 L12 3 L21 9 V20 H3 Z" /></svg>; }
-function IconCouple() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="9" r="3" /><circle cx="16" cy="9" r="3" /></svg>; }
-function IconSubscription() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="14" rx="2" /><path d="M2 10 H22" /></svg>; }
-function IconInvoice() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2 H6 V22 H18 V8 L14 2 Z" /><path d="M14 2 V8 H18" /></svg>; }
-function IconLead() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 L15 8 L21 9 L17 14 L18 20 L12 17 L6 20 L7 14 L3 9 L9 8 Z" /></svg>; }
-function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17 L9 11 L13 15 L21 7" /></svg>; }
-function IconAccess() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11 V7 A5 5 0 0 1 17 7 V11" /></svg>; }
-function IconSettings() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>; }
+
+function DangerBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <button onClick={onClick}
+      style={{ padding: "3px 10px", borderRadius: 9999, background: "#e8a0a033", color: "#c0392b", border: "none", fontSize: 12, cursor: "pointer" }}>
+      {children}
+    </button>
+  );
+}
+
+function FormCard({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 18, padding: 24, marginBottom: 16, boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)", border: "1px solid rgba(63,72,66,0.1)" }}>
+      <h3 style={{ margin: "0 0 16px", fontFamily: "var(--font-heading)", color: "var(--forest)", fontSize: 18 }}>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={style}>
+      <label style={{ display: "block", fontSize: 12, color: "var(--forest-light)", marginBottom: 4 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "8px 12px", borderRadius: 10,
+  border: "1px solid rgba(63,72,66,0.2)", fontSize: 14,
+  fontFamily: "var(--font-body)", background: "var(--cream)", boxSizing: "border-box",
+};
