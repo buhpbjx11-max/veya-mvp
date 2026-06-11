@@ -22,6 +22,13 @@ import JoinWedding from "./pages/JoinWedding";
 import VenueShareSetup from "./pages/VenueShareSetup";
 import VenueShareView from "./pages/VenueShareView";
 
+// Tools
+import Guests from "./pages/Guests";
+import Seating from "./pages/Seating";
+import Budget from "./pages/Budget";
+import Gifts from "./pages/Gifts";
+import Photos from "./pages/Photos";
+
 function Router() {
   return (
     <Switch>
@@ -45,6 +52,13 @@ function Router() {
       <Route path="/couple/venue-share" component={VenueShareSetup} />
       {/* Public read-only view for venue — no auth required */}
       <Route path="/venue-view/:token" component={VenueShareView} />
+
+      {/* Couple tools */}
+      <Route path="/couple/guests" component={Guests} />
+      <Route path="/couple/seating" component={Seating} />
+      <Route path="/couple/budget" component={Budget} />
+      <Route path="/couple/gifts" component={Gifts} />
+      <Route path="/couple/photos" component={Photos} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

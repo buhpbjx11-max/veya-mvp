@@ -364,3 +364,132 @@ export async function updateVenueShare(id: number, coupleId: number, data: Parti
     .set(data)
     .where(and(eq(venueShares.id, id), eq(venueShares.coupleId, coupleId)));
 }
+
+// ─── Guests ───────────────────────────────────────────────────────────────────
+
+import {
+  BudgetItem,
+  Guest,
+  InsertBudgetItem,
+  InsertGuest,
+  InsertPhoto,
+  InsertSeatingTable,
+  Photo,
+  SeatingTable,
+  budgetItems,
+  guests,
+  photos,
+  tables as seatingTables,
+} from "../drizzle/schema";
+
+export async function getGuestsByCoupleId(coupleId: number): Promise<Guest[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(guests).where(eq(guests.coupleId, coupleId));
+}
+
+export async function getGuestById(id: number): Promise<Guest | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(guests).where(eq(guests.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createGuest(data: InsertGuest): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(guests).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function updateGuest(id: number, coupleId: number, data: Partial<InsertGuest>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(guests).set(data).where(and(eq(guests.id, id), eq(guests.coupleId, coupleId)));
+}
+
+export async function deleteGuest(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { sql } = await import("drizzle-orm");
+  await db.delete(guests).where(and(eq(guests.id, id), eq(guests.coupleId, coupleId)));
+}
+
+// ─── Seating Tables ───────────────────────────────────────────────────────────
+
+export async function getTablesByCoupleId(coupleId: number): Promise<SeatingTable[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(seatingTables).where(eq(seatingTables.coupleId, coupleId));
+}
+
+export async function createTable(data: InsertSeatingTable): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(seatingTables).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function updateTable(id: number, coupleId: number, data: Partial<InsertSeatingTable>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(seatingTables).set(data).where(and(eq(seatingTables.id, id), eq(seatingTables.coupleId, coupleId)));
+}
+
+export async function deleteTable(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(seatingTables).where(and(eq(seatingTables.id, id), eq(seatingTables.coupleId, coupleId)));
+}
+
+// ─── Budget Items ─────────────────────────────────────────────────────────────
+
+export async function getBudgetItemsByCoupleId(coupleId: number): Promise<BudgetItem[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(budgetItems).where(eq(budgetItems.coupleId, coupleId));
+}
+
+export async function createBudgetItem(data: InsertBudgetItem): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(budgetItems).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function updateBudgetItem(id: number, coupleId: number, data: Partial<InsertBudgetItem>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(budgetItems).set(data).where(and(eq(budgetItems.id, id), eq(budgetItems.coupleId, coupleId)));
+}
+
+export async function deleteBudgetItem(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(budgetItems).where(and(eq(budgetItems.id, id), eq(budgetItems.coupleId, coupleId)));
+}
+
+// ─── Photos ───────────────────────────────────────────────────────────────────
+
+export async function getPhotosByCoupleId(coupleId: number): Promise<Photo[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(photos).where(eq(photos.coupleId, coupleId));
+}
+
+export async function createPhoto(data: InsertPhoto): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(photos).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function deletePhoto(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(photos).where(and(eq(photos.id, id), eq(photos.coupleId, coupleId)));
+}

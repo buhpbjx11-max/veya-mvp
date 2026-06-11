@@ -91,3 +91,17 @@
 - [x] UI: /venue-view/:token — VenueShareView (קריאה בלבד, ללא auth, ערוץ המרה בתחתית)
 - [x] Sidebar CoupleDashboard — "שיתוף עם האולם" רק לindependent
 - [x] 15 בדיקות vitest עוברות (סה"כ 46 בדיקות)
+
+## שלב 5 — כלי MVP
+- [ ] Server: guest.list, guest.create, guest.update, guest.delete, guest.bulkImport
+- [ ] Server: guest.updateRsvp (RSVP + diet), guest.getChefReport
+- [ ] Server: seating.getTables, seating.createTable, seating.updateTable, seating.assignGuest
+- [ ] Server: gift.list, gift.create, gift.update, gift.markThanked
+- [ ] Server: budget.list, budget.create, budget.update, budget.delete
+- [ ] Server: photo.list, photo.upload, photo.delete
+- [ ] UI: GuestsPage — רשימת אורחים + RSVP + דיאטות + ייצוא דוח שף
+- [ ] UI: SeatingPage — שולחנות drag & drop
+- [ ] UI: GiftsPage — מעקב מתנות (פרטי העברה בנקאית בלבד)
+- [ ] UI: BudgetPage — תקציב עם estimatedAmount/actualAmount/paid
+- [ ] UI: PhotosPage — גלריה + העלאת תמונות
+- [ ] ניתוב: הוספת routes לכל הדפים + sidebar links פעילים

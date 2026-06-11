@@ -7,14 +7,27 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   acceptWeddingInvite,
+  createBudgetItem,
   createCouple,
+  createGuest,
   createMessage,
+  createPhoto,
+  createTable,
   createVenue,
   createVenueShare,
   createWedding,
+  deleteBudgetItem,
+  deleteGuest,
+  deletePhoto,
+  deleteTable,
   getAccountContext,
+  getBudgetItemsByCoupleId,
   getCoupleByUserId,
+  getGuestById,
+  getGuestsByCoupleId,
   getMessagesByConversation,
+  getPhotosByCoupleId,
+  getTablesByCoupleId,
   getVenueById,
   getVenueByUserId,
   getVenueShareByToken,
@@ -22,7 +35,10 @@ import {
   getWeddingByToken,
   getWeddingsByVenueId,
   revokeVenueShare,
+  updateBudgetItem,
   updateCouple,
+  updateGuest,
+  updateTable,
   updateVenue,
   updateVenueShare,
 } from "./db";
@@ -568,6 +584,333 @@ export const appRouter = router({
         return result;
       }),
   }),
+
+  // ─── Guests ─────────────────────────────────────────────────────────────────
+  guest: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN", message: "רק זוגות יכולים לראות אורחים" });
+      return getGuestsByCoupleId(couple.id);
+    }),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        count: z.number().int().min(1).max(20).default(1),
+        side: z.string().max(100).optional(),
+        group: z.string().max(100).optional(),
+        phone: z.string().max(20).optional(),
+        diet: z.object({
+          type: z.enum(["regular", "vegetarian", "vegan", "child"]).optional(),
+          allergies: z.string().max(500).optional(),
+        }).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN", message: "רק זוגות יכולים להוסיף אורחים" });
+        const { randomBytes } = await import("crypto");
+        const inviteToken = randomBytes(16).toString("hex");
+        const id = await createGuest({
+          coupleId: couple.id,
+          name: input.name,
+          count: input.count,
+          side: input.side ?? null,
+          group: input.group ?? null,
+          phone: input.phone ?? null,
+          diet: input.diet ?? null,
+          inviteToken,
+        });
+        return { success: true, id };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        name: z.string().min(1).max(255).optional(),
+        count: z.number().int().min(1).max(20).optional(),
+        side: z.string().max(100).optional(),
+        group: z.string().max(100).optional(),
+        phone: z.string().max(20).optional(),
+        rsvpStatus: z.enum(["pending", "yes", "no", "maybe"]).optional(),
+        diet: z.object({
+          type: z.enum(["regular", "vegetarian", "vegan", "child"]).optional(),
+          allergies: z.string().max(500).optional(),
+        }).optional(),
+        tableId: z.number().int().positive().nullable().optional(),
+        giftAmount: z.string().optional(),
+        giftNote: z.string().max(500).optional(),
+        thanked: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const { id, ...data } = input;
+        await updateGuest(id, couple.id, data as Parameters<typeof updateGuest>[2]);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteGuest(input.id, couple.id);
+        return { success: true };
+      }),
+
+    /** updateRsvp: guest updates their own RSVP via invite token (no auth) */
+    updateRsvp: publicProcedure
+      .input(z.object({
+        token: z.string().min(1),
+        rsvpStatus: z.enum(["yes", "no", "maybe"]),
+        diet: z.object({
+          type: z.enum(["regular", "vegetarian", "vegan", "child"]).optional(),
+          allergies: z.string().max(500).optional(),
+        }).optional(),
+        name: z.string().max(255).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await (await import("./db")).getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { guests: guestsTable } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const result = await db.select().from(guestsTable).where(eq(guestsTable.inviteToken, input.token)).limit(1);
+        if (!result.length) throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין" });
+        const guest = result[0];
+        const updateData: Record<string, unknown> = { rsvpStatus: input.rsvpStatus };
+        if (input.diet) updateData.diet = input.diet;
+        if (input.name) updateData.name = input.name;
+        await db.update(guestsTable).set(updateData).where(eq(guestsTable.id, guest.id));
+        return { success: true, guestName: guest.name };
+      }),
+
+    /** chefReport: aggregated meal summary for venue (venue_linked only) */
+    chefReport: protectedProcedure
+      .input(z.object({ weddingId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        const venue = await getVenueByUserId(ctx.user.id);
+        if (!venue) throw new TRPCError({ code: "FORBIDDEN", message: "רק אולמות יכולים לראות דוח שף" });
+        // Find the couple linked to this wedding
+        const db = await (await import("./db")).getDb();
+        if (!db) return { meals: {}, total: 0, confirmed: 0 };
+        const { weddings: weddingsTable } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const weddingResult = await db.select().from(weddingsTable).where(eq(weddingsTable.id, input.weddingId)).limit(1);
+        if (!weddingResult.length || weddingResult[0].venueId !== venue.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "חתונה לא שייכת לאולם זה" });
+        }
+        const wedding = weddingResult[0];
+        if (!wedding.coupleId) return { meals: {}, total: 0, confirmed: 0 };
+        const guestList = await getGuestsByCoupleId(wedding.coupleId);
+        const confirmed = guestList.filter(g => g.rsvpStatus === "yes");
+        const meals: Record<string, number> = {};
+        for (const g of confirmed) {
+          const diet = (g.diet as { type?: string } | null)?.type ?? "regular";
+          meals[diet] = (meals[diet] ?? 0) + (g.count ?? 1);
+        }
+        return { meals, total: confirmed.reduce((s, g) => s + (g.count ?? 1), 0), confirmed: confirmed.length };
+      }),
+  }),
+
+  // ─── Seating ─────────────────────────────────────────────────────────────────
+  seating: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+      const [tableList, guestList] = await Promise.all([
+        getTablesByCoupleId(couple.id),
+        getGuestsByCoupleId(couple.id),
+      ]);
+      return { tables: tableList, guests: guestList };
+    }),
+
+    createTable: protectedProcedure
+      .input(z.object({
+        label: z.string().min(1).max(100),
+        capacity: z.number().int().min(1).max(100).default(10),
+        shape: z.enum(["round", "rect"]).default("round"),
+        x: z.number().default(0),
+        y: z.number().default(0),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const id = await createTable({
+          coupleId: couple.id,
+          label: input.label,
+          capacity: input.capacity,
+          shape: input.shape,
+          x: String(input.x),
+          y: String(input.y),
+          w: "120",
+          h: "120",
+          rotation: "0",
+        });
+        return { success: true, id };
+      }),
+
+    updateTable: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        label: z.string().min(1).max(100).optional(),
+        capacity: z.number().int().min(1).max(100).optional(),
+        shape: z.enum(["round", "rect"]).optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        assignedGuests: z.array(z.number().int()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const { id, ...rest } = input;
+        const data: Record<string, unknown> = {};
+        if (rest.label !== undefined) data.label = rest.label;
+        if (rest.capacity !== undefined) data.capacity = rest.capacity;
+        if (rest.shape !== undefined) data.shape = rest.shape;
+        if (rest.x !== undefined) data.x = String(rest.x);
+        if (rest.y !== undefined) data.y = String(rest.y);
+        if (rest.assignedGuests !== undefined) data.assignedGuests = rest.assignedGuests;
+        await updateTable(id, couple.id, data as Parameters<typeof updateTable>[2]);
+        return { success: true };
+      }),
+
+    deleteTable: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteTable(input.id, couple.id);
+        return { success: true };
+      }),
+
+    assignGuest: protectedProcedure
+      .input(z.object({
+        guestId: z.number().int().positive(),
+        tableId: z.number().int().positive().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        // Update guest's tableId
+        await updateGuest(input.guestId, couple.id, { tableId: input.tableId });
+        return { success: true };
+      }),
+  }),
+
+  // ─── Budget ──────────────────────────────────────────────────────────────────
+  budget: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+      return getBudgetItemsByCoupleId(couple.id);
+    }),
+
+    create: protectedProcedure
+      .input(z.object({
+        category: z.string().min(1).max(100),
+        description: z.string().max(255).optional(),
+        estimatedAmount: z.string().optional(),
+        actualAmount: z.string().optional(),
+        paid: z.boolean().default(false),
+        notes: z.string().max(1000).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const id = await createBudgetItem({
+          coupleId: couple.id,
+          category: input.category,
+          description: input.description ?? null,
+          estimatedAmount: input.estimatedAmount ?? null,
+          actualAmount: input.actualAmount ?? null,
+          paid: input.paid,
+          notes: input.notes ?? null,
+        });
+        return { success: true, id };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        category: z.string().min(1).max(100).optional(),
+        description: z.string().max(255).optional(),
+        estimatedAmount: z.string().optional(),
+        actualAmount: z.string().optional(),
+        paid: z.boolean().optional(),
+        notes: z.string().max(1000).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const { id, ...data } = input;
+        await updateBudgetItem(id, couple.id, data as Parameters<typeof updateBudgetItem>[2]);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteBudgetItem(input.id, couple.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Photos ──────────────────────────────────────────────────────────────────
+  photo: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+      return getPhotosByCoupleId(couple.id);
+    }),
+
+    /** getUploadUrl: get a presigned S3 URL for direct upload */
+    getUploadUrl: protectedProcedure
+      .input(z.object({
+        filename: z.string().min(1).max(255),
+        contentType: z.string().min(1).max(100),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const { storagePut } = await import("./storage");
+        const ext = input.filename.split(".").pop() ?? "jpg";
+        const key = `photos/${couple.id}/${Date.now()}.${ext}`;
+        // Create a placeholder entry and return the key for upload
+        return { key, uploadPath: `/api/upload/photo?key=${encodeURIComponent(key)}` };
+      }),
+
+    /** save: after upload, save the photo record */
+    save: protectedProcedure
+      .input(z.object({
+        fileKey: z.string().min(1).max(500),
+        url: z.string().min(1).max(1000),
+        caption: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const id = await createPhoto({
+          coupleId: couple.id,
+          fileKey: input.fileKey,
+          url: input.url,
+          uploadedBy: "couple",
+          caption: input.caption ?? null,
+        });
+        return { success: true, id };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        await deletePhoto(input.id, couple.id);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
+

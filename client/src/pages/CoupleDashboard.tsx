@@ -90,14 +90,14 @@ export default function CoupleDashboard() {
     : null;
 
   const navItems = [
-    { label: "דשבורד", icon: <IcoHome />, active: true },
-    { label: "אורחים", icon: <IcoGuests /> },
-    { label: "שולחנות", icon: <IcoTable /> },
-    { label: "תקציב", icon: <IcoBudget /> },
-    { label: "ספקים", icon: <IcoVendor /> },
-    { label: "קופת מתנות", icon: <IcoGift /> },
-    { label: "לוח זמנים", icon: <IcoClock /> },
-    { label: "תמונות", icon: <IcoPhoto /> },
+    { label: "דשבורד", icon: <IcoHome />, active: true, href: "/couple/dashboard" },
+    { label: "אורחים", icon: <IcoGuests />, href: "/couple/guests" },
+    { label: "שולחנות", icon: <IcoTable />, href: "/couple/seating" },
+    { label: "תקציב", icon: <IcoBudget />, href: "/couple/budget" },
+    { label: "ספקים", icon: <IcoVendor />, href: null },
+    { label: "מתנות", icon: <IcoGift />, href: "/couple/gifts" },
+    { label: "לוח זמנים", icon: <IcoClock />, href: null },
+    { label: "תמונות", icon: <IcoPhoto />, href: "/couple/photos" },
   ];
 
   return (
@@ -138,16 +138,19 @@ export default function CoupleDashboard() {
           {navItems.map((item) => (
             <div
               key={item.label}
-              onClick={() => !item.active && toast.info(`${item.label} — בקרוב`)}
+              onClick={() => item.href ? navigate(item.href) : toast.info(`${item.label} — בקרוב`)}
               style={{
                 padding: "10px 12px", color: item.active ? "#F8F6F2" : "rgba(248,246,242,.65)",
                 borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2,
                 cursor: "pointer", background: item.active ? "rgba(168,195,176,.18)" : "transparent",
                 borderRight: item.active ? "2px solid #D9C5A1" : "2px solid transparent", transition: "all 0.15s",
               }}
+              onMouseEnter={(e) => { if (!item.active) e.currentTarget.style.background = "rgba(168,195,176,.1)"; }}
+              onMouseLeave={(e) => { if (!item.active) e.currentTarget.style.background = "transparent"; }}
             >
               <span style={{ width: 16, height: 16, flexShrink: 0 }}>{item.icon}</span>
               {item.label}
+              {!item.href && <span style={{ marginRight: "auto", fontSize: 10, color: "rgba(248,246,242,.35)", background: "rgba(255,255,255,.08)", borderRadius: 9999, padding: "1px 6px" }}>בקרוב</span>}
             </div>
           ))}
 
