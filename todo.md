@@ -78,3 +78,16 @@
 - [ ] UI: ChatPage — דף צ'אט עם האולם (venue_linked בלבד)
 - [ ] הגנה: כל procedure תלוי-אולם בודק couple.type === venue_linked
 - [ ] בדיקות vitest לשני סוגי הזוגות
+
+## משימה 2 — Venue Share (שיתוף עם האולם) ✅
+- [x] DB: טבלת venue_shares (coupleId, venueName, venuePhone, venueWhatsapp, sharedSections JSON, shareToken unique, revoked)
+- [x] migration ויישום SQL
+- [x] Server: venueShare.create (independent בלבד — iron rule)
+- [x] Server: venueShare.list (רשימת שיתופים של הזוג)
+- [x] Server: venueShare.update (עדכון sections / פרטי אולם)
+- [x] Server: venueShare.revoke (ביטול גישה מיידי)
+- [x] Server: venueShare.getByToken (ציבורי — קריאה בלבד, מחשב guestSummary + mealSummary)
+- [x] UI: /couple/venue-share — VenueShareSetup (הגדרת שיתוף, העתקת קישור, WhatsApp, ביטול)
+- [x] UI: /venue-view/:token — VenueShareView (קריאה בלבד, ללא auth, ערוץ המרה בתחתית)
+- [x] Sidebar CoupleDashboard — "שיתוף עם האולם" רק לindependent
+- [x] 15 בדיקות vitest עוברות (סה"כ 46 בדיקות)

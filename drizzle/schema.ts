@@ -627,3 +627,57 @@ export const toolSettings = mysqlTable("tool_settings", {
 
 export type ToolSetting = typeof toolSettings.$inferSelect;
 export type InsertToolSetting = typeof toolSettings.$inferInsert;
+
+// ─── Venue Shares (שיתוף עם האולם — רק לזוג independent) ─────────────────────
+/**
+ * venue_shares: allows an independent couple to share a read-only view
+ * of their wedding data with their venue (without giving the venue edit access).
+ *
+ * Iron rules:
+ * - Only independent couples can create venue shares (venue_linked don't need this)
+ * - The venue gets a read-only token link — zero edit capability
+ * - The couple controls what sections are shared (checklist)
+ * - The couple can revoke at any time
+ * - Live data: the venue always sees the current state
+ */
+export const venueShares = mysqlTable("venue_shares", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → couples.id — the independent couple who created this share */
+  coupleId: int("coupleId").notNull(),
+  /** Venue contact info (not a VEYA account — just contact details) */
+  venueName: varchar("venueName", { length: 255 }).notNull(),
+  venuePhone: varchar("venuePhone", { length: 20 }),
+  venueWhatsapp: varchar("venueWhatsapp", { length: 20 }),
+  /**
+   * sharedSections: which sections the couple chose to share
+   * {
+   *   guests: boolean,   — RSVP summary (confirmed/pending/declined/total)
+   *   meals: boolean,    — meal types & dietary breakdown
+   *   seating: boolean,  — seating chart (locked, read-only)
+   *   schedule: boolean, — wedding day timeline (optional)
+   *   vendors: boolean,  — vendor contact list (optional)
+   * }
+   */
+  sharedSections: json("sharedSections")
+    .$type<{
+      guests: boolean;
+      meals: boolean;
+      seating: boolean;
+      schedule: boolean;
+      vendors: boolean;
+    }>()
+    .notNull(),
+  /**
+   * shareToken: unique random token for the read-only URL
+   * Format: /venue-view/[shareToken]
+   * The venue opens this URL — no login required
+   */
+  shareToken: varchar("shareToken", { length: 64 }).notNull().unique(),
+  /** revoked: couple can revoke access at any time */
+  revoked: boolean("revoked").notNull().default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type VenueShare = typeof venueShares.$inferSelect;
+export type InsertVenueShare = typeof venueShares.$inferInsert;

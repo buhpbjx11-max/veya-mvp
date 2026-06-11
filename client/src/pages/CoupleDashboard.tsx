@@ -176,12 +176,24 @@ export default function CoupleDashboard() {
             </>
           )}
 
-          {/* Family */}
-          <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "12px 12px 8px", marginTop: 4 }}>משפחה</div>
+          {/* Family + Venue Share */}
+          <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "12px 12px 8px", marginTop: 4 }}>שיתוף</div>
           <div onClick={() => toast.info("שיתוף משפחה — בקרוב")} style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer" }}>
             <span style={{ width: 16, height: 16 }}><IcoFamily /></span>
             שיתוף עם המשפחה
           </div>
+          {/* Venue Share — only for independent couples */}
+          {!isVenueLinked && (
+            <div
+              onClick={() => navigate("/couple/venue-share")}
+              style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,195,176,.1)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <span style={{ width: 16, height: 16 }}><IcoLink /></span>
+              שיתוף עם האולם
+            </div>
+          )}
           <div onClick={() => toast.info("תודות — בקרוב")} style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer" }}>
             <span style={{ width: 16, height: 16 }}><IcoHeart /></span>
             תודות אחרי החתונה

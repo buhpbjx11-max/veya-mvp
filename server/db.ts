@@ -6,14 +6,17 @@ import {
   InsertMessage,
   InsertUser,
   InsertVenue,
+  InsertVenueShare,
   InsertWedding,
   Message,
   User,
   Venue,
+  VenueShare,
   Wedding,
   couples,
   messages,
   users,
+  venueShares,
   venues,
   weddings,
 } from "../drizzle/schema";
@@ -298,4 +301,66 @@ export async function getAccountContext(userId: number, userRole: string) {
   }
 
   return { accountType: 'new' as const };
+}
+
+// ─── Venue Shares ─────────────────────────────────────────────────────────────
+
+/**
+ * Create a venue share for an independent couple.
+ * Generates a unique shareToken for the read-only URL.
+ */
+export async function createVenueShare(data: InsertVenueShare): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(venueShares).values(data);
+  // @ts-ignore — insertId exists on mysql2 result
+  return result[0].insertId as number;
+}
+
+/**
+ * Get a venue share by its token (public — no auth required).
+ * Returns null if not found or revoked.
+ */
+export async function getVenueShareByToken(token: string): Promise<VenueShare | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(venueShares)
+    .where(and(eq(venueShares.shareToken, token), eq(venueShares.revoked, false)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Get all venue shares for a couple (including revoked).
+ */
+export async function getVenueSharesByCoupleId(coupleId: number): Promise<VenueShare[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(venueShares).where(eq(venueShares.coupleId, coupleId));
+}
+
+/**
+ * Revoke a venue share — couple can call this at any time.
+ */
+export async function revokeVenueShare(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(venueShares)
+    .set({ revoked: true })
+    .where(and(eq(venueShares.id, id), eq(venueShares.coupleId, coupleId)));
+}
+
+/**
+ * Update shared sections for a venue share.
+ */
+export async function updateVenueShare(id: number, coupleId: number, data: Partial<InsertVenueShare>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(venueShares)
+    .set(data)
+    .where(and(eq(venueShares.id, id), eq(venueShares.coupleId, coupleId)));
 }

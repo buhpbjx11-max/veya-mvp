@@ -18,6 +18,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 // Wedding invite
 import JoinWedding from "./pages/JoinWedding";
 
+// Venue Share
+import VenueShareSetup from "./pages/VenueShareSetup";
+import VenueShareView from "./pages/VenueShareView";
+
 function Router() {
   return (
     <Switch>
@@ -36,6 +40,11 @@ function Router() {
 
       {/* Wedding invite — public, no auth required */}
       <Route path="/join/:token" component={JoinWedding} />
+
+      {/* Venue Share */}
+      <Route path="/couple/venue-share" component={VenueShareSetup} />
+      {/* Public read-only view for venue — no auth required */}
+      <Route path="/venue-view/:token" component={VenueShareView} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

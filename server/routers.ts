@@ -10,16 +10,21 @@ import {
   createCouple,
   createMessage,
   createVenue,
+  createVenueShare,
   createWedding,
   getAccountContext,
   getCoupleByUserId,
   getMessagesByConversation,
   getVenueById,
   getVenueByUserId,
+  getVenueShareByToken,
+  getVenueSharesByCoupleId,
   getWeddingByToken,
   getWeddingsByVenueId,
+  revokeVenueShare,
   updateCouple,
   updateVenue,
+  updateVenueShare,
 } from "./db";
 
 export const appRouter = router({
@@ -399,6 +404,168 @@ export const appRouter = router({
 
         await acceptWeddingInvite(wedding.id, couple.id, wedding.venueId);
         return { success: true, weddingId: wedding.id };
+      }),
+  }),
+
+  // ─── Venue Share (שיתוף עם האולם — רק לזוג independent) ───────────────────
+  venueShare: router({
+    /**
+     * create: independent couple creates a share link for their venue.
+     * Iron rule: only independent couples can create venue shares.
+     */
+    create: protectedProcedure
+      .input(
+        z.object({
+          venueName: z.string().min(1).max(255),
+          venuePhone: z.string().max(20).optional(),
+          venueWhatsapp: z.string().max(20).optional(),
+          sharedSections: z.object({
+            guests: z.boolean(),
+            meals: z.boolean(),
+            seating: z.boolean(),
+            schedule: z.boolean(),
+            vendors: z.boolean(),
+          }),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "יש להשלים הרשמה כזוג" });
+        }
+        // Iron rule: only independent couples can create venue shares
+        if (couple.type !== "independent") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "זוגות מקושרים לאולם לא זקוקים לשיתוף — האולם שלכם כבר במערכת",
+          });
+        }
+
+        const shareToken = randomBytes(32).toString("hex");
+
+        const shareId = await createVenueShare({
+          coupleId: couple.id,
+          venueName: input.venueName,
+          venuePhone: input.venuePhone ?? null,
+          venueWhatsapp: input.venueWhatsapp ?? null,
+          sharedSections: input.sharedSections,
+          shareToken,
+          revoked: false,
+        });
+
+        return { success: true, shareId, shareToken };
+      }),
+
+    /**
+     * list: get all venue shares for the current couple.
+     */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) return [];
+      return getVenueSharesByCoupleId(couple.id);
+    }),
+
+    /**
+     * update: update shared sections or venue contact info.
+     */
+    update: protectedProcedure
+      .input(
+        z.object({
+          shareId: z.number(),
+          sharedSections: z.object({
+            guests: z.boolean(),
+            meals: z.boolean(),
+            seating: z.boolean(),
+            schedule: z.boolean(),
+            vendors: z.boolean(),
+          }).optional(),
+          venueName: z.string().min(1).max(255).optional(),
+          venuePhone: z.string().max(20).optional(),
+          venueWhatsapp: z.string().max(20).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const updateData: Record<string, unknown> = {};
+        if (input.sharedSections) updateData.sharedSections = input.sharedSections;
+        if (input.venueName) updateData.venueName = input.venueName;
+        if (input.venuePhone !== undefined) updateData.venuePhone = input.venuePhone;
+        if (input.venueWhatsapp !== undefined) updateData.venueWhatsapp = input.venueWhatsapp;
+        await updateVenueShare(input.shareId, couple.id, updateData);
+        return { success: true };
+      }),
+
+    /**
+     * revoke: couple revokes the share — venue loses access immediately.
+     */
+    revoke: protectedProcedure
+      .input(z.object({ shareId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        await revokeVenueShare(input.shareId, couple.id);
+        return { success: true };
+      }),
+
+    /**
+     * getByToken: PUBLIC — venue opens the read-only share link.
+     * No login required. Returns null if token is invalid or revoked.
+     *
+     * Returns a snapshot of the couple's wedding data based on sharedSections.
+     * The venue gets ZERO edit capability.
+     */
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const share = await getVenueShareByToken(input.token);
+        if (!share) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין, פג תוקף, או בוטל" });
+        }
+
+        // Fetch couple data
+        const db = await (await import("./db")).getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const { couples, guests, weddings } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+
+        const [couple] = await db.select().from(couples).where(eq(couples.id, share.coupleId)).limit(1);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const result: {
+          share: typeof share;
+          couple: { name1: string; name2: string; weddingDate: Date | null };
+          guestSummary?: { total: number; confirmed: number; pending: number; declined: number };
+          mealSummary?: Record<string, number>;
+        } = {
+          share,
+          couple: { name1: couple.name1, name2: couple.name2, weddingDate: couple.weddingDate },
+        };
+
+        // Guests summary (if shared)
+        if (share.sharedSections.guests || share.sharedSections.meals) {
+          const guestList = await db.select().from(guests).where(eq(guests.coupleId, share.coupleId));
+          if (share.sharedSections.guests) {
+            result.guestSummary = {
+              total: guestList.length,
+              confirmed: guestList.filter(g => g.rsvpStatus === "yes").length,
+              pending: guestList.filter(g => g.rsvpStatus === "pending").length,
+              declined: guestList.filter(g => g.rsvpStatus === "no").length,
+            };
+          }
+          if (share.sharedSections.meals) {
+            const mealCounts: Record<string, number> = {};
+            for (const g of guestList) {
+              if (g.rsvpStatus !== "yes") continue;
+              const diet = (g.diet as { type?: string } | null)?.type ?? "standard";
+              mealCounts[diet] = (mealCounts[diet] ?? 0) + 1;
+            }
+            result.mealSummary = mealCounts;
+          }
+        }
+
+        return result;
       }),
   }),
 });
