@@ -3,12 +3,20 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-type Tab = "stats" | "venues" | "couples" | "leads" | "access";
+type Tab = "stats" | "venues" | "couples" | "leads" | "access" | "feedback";
 
 const statusLabel: Record<string, string> = { trial: "ניסיון", active: "פעיל", locked: "נעול", cancelled: "בוטל" };
 const statusBg: Record<string, string> = { trial: "#D9C5A133", active: "#A8C3B033", locked: "#e8a0a033", cancelled: "#ccc3" };
 const statusFg: Record<string, string> = { trial: "#5D6861", active: "#3F4842", locked: "#c0392b", cancelled: "#888" };
 const roleLabel: Record<string, string> = { legal: "עורך דין", cpa: "רואה חשבון", tax: "יועץ מס" };
+const CATEGORY_LABELS: Record<string, string> = {
+  overall: "כללי",
+  venue: "אולם",
+  veya: "VEYA",
+  seating: "הושבה",
+  guests: "אורחים",
+  budget: "תקציב",
+};
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
@@ -25,6 +33,7 @@ export default function AdminDashboard() {
   const couplesQ = trpc.admin?.listCouples?.useQuery(undefined, { enabled: tab === "couples" });
   const leadsQ = trpc.admin?.listLeads?.useQuery(undefined, { enabled: tab === "leads" });
   const accessQ = trpc.admin?.listAccessGrants?.useQuery(undefined, { enabled: tab === "access" });
+  const feedbackQ = trpc.admin?.getFeedbackStats?.useQuery(undefined, { enabled: tab === "feedback" });
 
   const updateVenueStatus = trpc.admin?.updateVenueStatus?.useMutation({ onSuccess: () => utils.admin?.listVenues?.invalidate() });
   const createLead = trpc.admin?.createLead?.useMutation({ onSuccess: () => { utils.admin?.listLeads?.invalidate(); setShowLeadForm(false); setLeadForm({ venueName: "", contact: "", phone: "", email: "", notes: "", stage: "lead", source: "manual" }); } });
@@ -39,6 +48,7 @@ export default function AdminDashboard() {
     { id: "couples", label: "זוגות" },
     { id: "leads", label: "CRM לידים" },
     { id: "access", label: "גישות חיצוניות" },
+    { id: "feedback", label: "משוב זוגות" },
   ];
 
   if (!user) return null;
@@ -209,6 +219,53 @@ export default function AdminDashboard() {
                 </tr>
               ))}
             </Table>
+          </div>
+        )}
+
+        {/* ─── Feedback Stats ─── */}
+        {tab === "feedback" && (
+          feedbackQ?.isLoading ? <Loader /> :
+          <div>
+            {/* Summary KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 28 }}>
+              <div style={{ background: "#fff", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)", border: "1px solid rgba(63,72,66,0.08)" }}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: "var(--forest)", fontFamily: "var(--font-heading)" }}>{feedbackQ?.data?.count ?? 0}</div>
+                <div style={{ fontSize: 13, color: "var(--forest-light)", marginTop: 4 }}>סה"כ סקרים</div>
+              </div>
+              {Object.entries(feedbackQ?.data?.averages ?? {}).map(([cat, avg]) => (
+                <div key={cat} style={{ background: "#fff", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 8px 24px rgba(63,72,66,.06)", border: "1px solid rgba(63,72,66,0.08)" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontSize: 32, fontWeight: 700, color: avg >= 4 ? "#A8C3B0" : avg >= 3 ? "#D9C5A1" : "#e8a0a0", fontFamily: "var(--font-heading)" }}>{avg}</span>
+                    <span style={{ fontSize: 14, color: "var(--forest-light)" }}>/5</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--forest-light)", marginTop: 4 }}>{CATEGORY_LABELS[cat] ?? cat}</div>
+                  {/* Star bar */}
+                  <div style={{ marginTop: 8, height: 4, borderRadius: 2, background: "rgba(63,72,66,0.1)" }}>
+                    <div style={{ height: "100%", borderRadius: 2, background: avg >= 4 ? "#A8C3B0" : avg >= 3 ? "#D9C5A1" : "#e8a0a0", width: `${(avg / 5) * 100}%`, transition: "width 0.4s" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Recent comments */}
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--forest)", marginBottom: 16 }}>הערות אחרונות</h3>
+            {!feedbackQ?.data?.recent?.length
+              ? <div style={{ color: "var(--forest-light)", padding: 24, textAlign: "center" }}>אין הערות עדיין</div>
+              : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {feedbackQ.data.recent.map(r => (
+                    <div key={r.id} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", boxShadow: "0 1px 2px rgba(45,45,45,.04), 0 4px 16px rgba(63,72,66,.05)", border: "1px solid rgba(63,72,66,0.08)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                        <p style={{ margin: 0, fontSize: 14, color: "var(--forest)", lineHeight: 1.6, flex: 1 }}>{r.comment}</p>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                          {r.overallRating !== null && (
+                            <Pill bg="#A8C3B033" fg="#3F4842">★ {r.overallRating}/5</Pill>
+                          )}
+                          <span style={{ fontSize: 11, color: "var(--forest-light)" }}>{new Date(r.createdAt).toLocaleDateString("he-IL")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+            }
           </div>
         )}
 

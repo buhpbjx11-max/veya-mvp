@@ -1523,6 +1523,41 @@ export const appRouter = router({
         await adminUpdateAccessGrant(id, data);
         return { success: true };
       }),
+    /** getFeedbackStats: aggregate feedback across all couples */
+    getFeedbackStats: adminProcedure.query(async () => {
+      const all = await getAllFeedback();
+      if (all.length === 0) return { count: 0, averages: {}, recent: [] };
+      // Aggregate averages per category
+      const categoryTotals: Record<string, { sum: number; count: number }> = {};
+      for (const fb of all) {
+        if (fb.ratings && typeof fb.ratings === "object") {
+          for (const [cat, val] of Object.entries(fb.ratings)) {
+            if (typeof val === "number") {
+              if (!categoryTotals[cat]) categoryTotals[cat] = { sum: 0, count: 0 };
+              categoryTotals[cat].sum += val;
+              categoryTotals[cat].count += 1;
+            }
+          }
+        }
+      }
+      const averages: Record<string, number> = {};
+      for (const [cat, { sum, count }] of Object.entries(categoryTotals)) {
+        averages[cat] = Math.round((sum / count) * 10) / 10;
+      }
+      // Recent comments (last 10 with systemFeedback)
+      const recent = all
+        .filter((fb) => fb.systemFeedback)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10)
+        .map((fb) => ({
+          id: fb.id,
+          coupleId: fb.coupleId,
+          comment: fb.systemFeedback!,
+          createdAt: fb.createdAt,
+          overallRating: (fb.ratings as Record<string, number>)?.["overall"] ?? null,
+        }));
+      return { count: all.length, averages, recent };
+    }),
   }),
 });
 
