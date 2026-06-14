@@ -141,11 +141,28 @@ export const couples = mysqlTable("couples", {
    * sideLabels: JSON array [label for side 1, label for side 2]
    * e.g. ["צד עדן", "צד נועה"] — set by couple, gender-neutral
    */
-  sideLabels: json("sideLabels").$type<[string, string]>(),
+    sideLabels: json("sideLabels").$type<[string, string]>(),
+  /**
+   * giftSettings: JSON — transfer details shown to guests on the gift page
+   * VEYA does NOT process payments — these are display-only fields
+   */
+  /**
+   * photoQrToken: unique token for guest photo upload QR code
+   * Guests scan this QR to upload photos without an account
+   */
+  photoQrToken: varchar("photoQrToken", { length: 64 }).unique(),
+  giftSettings: json("giftSettings").$type<{
+    displayName?: string;
+    bankAccount?: string;   // e.g. "בנק לאומי · 10-805-432109"
+    bitPhone?: string;      // e.g. "050-432-1246"
+    payboxUser?: string;    // e.g. "@morAviv-wedding"
+    paypalEmail?: string;
+    thankYouMessage?: string;
+    enabledMethods?: string[]; // ["bit","bank","paybox","paypal"]
+  }>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type Couple = typeof couples.$inferSelect;
 export type InsertCouple = typeof couples.$inferInsert;
 
@@ -205,7 +222,14 @@ export const tables = mysqlTable("seatingTables", {
   coupleId: int("coupleId").notNull(),
   label: varchar("label", { length: 100 }).notNull(),
   capacity: int("capacity").notNull().default(10),
-  shape: mysqlEnum("shape", ["round", "rect"]).notNull().default("round"),
+  shape: mysqlEnum("shape", ["round", "rect", "couple"]).notNull().default("round"),
+  /** tableNumber: display number (null for couple table) */
+  tableNumber: int("tableNumber"),
+  /** name: optional table name */
+  name: varchar("name", { length: 100 }),
+  /** customW, customH: manual resize override (null = auto-calculated) */
+  customW: decimal("customW", { precision: 8, scale: 2 }),
+  customH: decimal("customH", { precision: 8, scale: 2 }),
   /** x, y: position on seating canvas */
   x: decimal("x", { precision: 8, scale: 2 }).notNull().default("0"),
   y: decimal("y", { precision: 8, scale: 2 }).notNull().default("0"),
@@ -221,6 +245,34 @@ export const tables = mysqlTable("seatingTables", {
 
 export type SeatingTable = typeof tables.$inferSelect;
 export type InsertSeatingTable = typeof tables.$inferInsert;
+
+// ─── Canvas Objects (במה / בר / עמוד / אובייקטים על הקנבס) ──────────────────
+export const canvasObjects = mysqlTable("canvasObjects", {
+  id: int("id").autoincrement().primaryKey(),
+  coupleId: int("coupleId").notNull(),
+  shape: mysqlEnum("shape", ["rect", "circle"]).notNull().default("rect"),
+  name: varchar("name", { length: 100 }),
+  x: decimal("x", { precision: 8, scale: 2 }).notNull().default("0"),
+  y: decimal("y", { precision: 8, scale: 2 }).notNull().default("0"),
+  w: decimal("w", { precision: 8, scale: 2 }).notNull().default("160"),
+  h: decimal("h", { precision: 8, scale: 2 }).notNull().default("70"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CanvasObject = typeof canvasObjects.$inferSelect;
+export type InsertCanvasObject = typeof canvasObjects.$inferInsert;
+
+// ─── Seating Venue Frame (מסגרת אולם) ─────────────────────────────────────────
+export const seatingVenueFrame = mysqlTable("seatingVenueFrame", {
+  id: int("id").autoincrement().primaryKey(),
+  coupleId: int("coupleId").notNull().unique(),
+  widthM: int("widthM").notNull().default(20),
+  heightM: int("heightM").notNull().default(30),
+  x: decimal("x", { precision: 8, scale: 2 }).notNull().default("0"),
+  y: decimal("y", { precision: 8, scale: 2 }).notNull().default("0"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SeatingVenueFrame = typeof seatingVenueFrame.$inferSelect;
 
 // ─── Vendors (ספקים) ─────────────────────────────────────────────────────────
 

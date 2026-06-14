@@ -36,6 +36,20 @@
       "when": 1781186703910,
       "tag": "0004_early_sister_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1781442590593,
+      "tag": "0005_blushing_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1781444909958,
+      "tag": "0006_slippery_dracula",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,7 @@ import Seating from "./pages/Seating";
 import Budget from "./pages/Budget";
 import Gifts from "./pages/Gifts";
 import Photos from "./pages/Photos";
+import GuestPhotoUpload from "./pages/GuestPhotoUpload";
 
 function Router() {
   return (
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/couple/budget" component={Budget} />
       <Route path="/couple/gifts" component={Gifts} />
       <Route path="/couple/photos" component={Photos} />
+      <Route path="/guest-photos/:token" component={GuestPhotoUpload} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

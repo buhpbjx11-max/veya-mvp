@@ -610,3 +610,68 @@ export async function adminUpdateAccessGrant(
   if (!db) throw new Error("Database not available");
   await db.update(accessGrants).set(data).where(eq(accessGrants.id, id));
 }
+
+// ─── Photo QR Token ───────────────────────────────────────────────────────────
+export async function getCoupleByPhotoToken(token: string): Promise<Couple | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(couples).where(eq(couples.photoQrToken, token)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// ─── Canvas Objects ───────────────────────────────────────────────────────────
+import {
+  CanvasObject,
+  InsertCanvasObject,
+  SeatingVenueFrame,
+  canvasObjects,
+  seatingVenueFrame as seatingVenueFrameTable,
+} from "../drizzle/schema";
+
+export async function getCanvasObjectsByCoupleId(coupleId: number): Promise<CanvasObject[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(canvasObjects).where(eq(canvasObjects.coupleId, coupleId));
+}
+
+export async function createCanvasObject(data: InsertCanvasObject): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(canvasObjects).values(data);
+  // @ts-ignore
+  return result[0].insertId as number;
+}
+
+export async function updateCanvasObject(id: number, coupleId: number, data: Partial<InsertCanvasObject>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(canvasObjects).set(data).where(and(eq(canvasObjects.id, id), eq(canvasObjects.coupleId, coupleId)));
+}
+
+export async function deleteCanvasObject(id: number, coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(canvasObjects).where(and(eq(canvasObjects.id, id), eq(canvasObjects.coupleId, coupleId)));
+}
+
+// ─── Seating Venue Frame ──────────────────────────────────────────────────────
+export async function getSeatingVenueFrame(coupleId: number): Promise<SeatingVenueFrame | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(seatingVenueFrameTable).where(eq(seatingVenueFrameTable.coupleId, coupleId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function upsertSeatingVenueFrame(coupleId: number, data: { widthM: number; heightM: number; x: number; y: number }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(seatingVenueFrameTable)
+    .values({ coupleId, widthM: data.widthM, heightM: data.heightM, x: String(data.x), y: String(data.y) })
+    .onDuplicateKeyUpdate({ set: { widthM: data.widthM, heightM: data.heightM, x: String(data.x), y: String(data.y) } });
+}
+
+export async function deleteSeatingVenueFrame(coupleId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(seatingVenueFrameTable).where(eq(seatingVenueFrameTable.coupleId, coupleId));
+}

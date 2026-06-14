@@ -19,6 +19,7 @@ import {
   adminUpdateLead,
   adminUpdateVenueStatus,
   createBudgetItem,
+  createCanvasObject,
   createCouple,
   createGuest,
   createMessage,
@@ -28,16 +29,21 @@ import {
   createVenueShare,
   createWedding,
   deleteBudgetItem,
+  deleteCanvasObject,
   deleteGuest,
   deletePhoto,
   deleteTable,
+  deleteSeatingVenueFrame,
   getAccountContext,
   getBudgetItemsByCoupleId,
+  getCanvasObjectsByCoupleId,
   getCoupleByUserId,
   getGuestById,
   getGuestsByCoupleId,
   getMessagesByConversation,
+  getCoupleByPhotoToken,
   getPhotosByCoupleId,
+  getSeatingVenueFrame,
   getTablesByCoupleId,
   getVenueById,
   getVenueByUserId,
@@ -47,11 +53,13 @@ import {
   getWeddingsByVenueId,
   revokeVenueShare,
   updateBudgetItem,
+  updateCanvasObject,
   updateCouple,
   updateGuest,
   updateTable,
   updateVenue,
   updateVenueShare,
+  upsertSeatingVenueFrame,
 } from "./db";
 
 // ─── Admin procedure ──────────────────────────────────────────────────────────
@@ -233,11 +241,28 @@ export const appRouter = router({
           updateData.sideLabels = [input.sideLabel1, input.sideLabel2];
         }
 
-        await updateCouple(couple.id, updateData as Parameters<typeof updateCouple>[1]);
+                await updateCouple(couple.id, updateData as Parameters<typeof updateCouple>[1]);
+        return { success: true };
+      }),
+    updateGiftSettings: protectedProcedure
+      .input(z.object({
+        displayName: z.string().max(100).optional(),
+        bankAccount: z.string().max(200).optional(),
+        bitPhone: z.string().max(20).optional(),
+        payboxUser: z.string().max(100).optional(),
+        paypalEmail: z.string().max(320).optional(),
+        thankYouMessage: z.string().max(500).optional(),
+        enabledMethods: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const current = (couple.giftSettings as Record<string, unknown>) ?? {};
+        const updated = { ...current, ...input };
+        await updateCouple(couple.id, { giftSettings: updated } as Parameters<typeof updateCouple>[1]);
         return { success: true };
       }),
   }),
-
   // ─── Messages (venue ↔ couple chat) ────────────────────────────────────────
   message: router({
     /**
@@ -703,6 +728,39 @@ export const appRouter = router({
         return { success: true, guestName: guest.name };
       }),
 
+    /** bulkCreate: import multiple guests at once (CSV/Excel import) */
+    bulkCreate: protectedProcedure
+      .input(z.object({
+        guests: z.array(z.object({
+          name: z.string().min(1).max(255),
+          count: z.number().int().min(1).max(20).default(1),
+          side: z.string().max(100).optional(),
+          group: z.string().max(100).optional(),
+          phone: z.string().max(20).optional(),
+          rsvpStatus: z.enum(["pending", "yes", "no", "maybe"]).default("pending"),
+        })).min(1).max(500),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        const { randomBytes } = await import("crypto");
+        let created = 0;
+        for (const g of input.guests) {
+          const inviteToken = randomBytes(16).toString("hex");
+          await createGuest({
+            coupleId: couple.id,
+            name: g.name,
+            count: g.count ?? 1,
+            side: g.side ?? null,
+            group: g.group ?? null,
+            phone: g.phone ?? null,
+            diet: null,
+            inviteToken,
+          });
+          created++;
+        }
+        return { success: true, created };
+      }),
     /** chefReport: aggregated meal summary for venue (venue_linked only) */
     chefReport: protectedProcedure
       .input(z.object({ weddingId: z.number().int().positive() }))
@@ -810,10 +868,123 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const couple = await getCoupleByUserId(ctx.user.id);
         if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
-        // Update guest's tableId
         await updateGuest(input.guestId, couple.id, { tableId: input.tableId });
         return { success: true };
       }),
+    // Full layout save (tables + objects + venueFrame in one call)
+    saveLayout: protectedProcedure
+      .input(z.object({
+        tables: z.array(z.object({
+          id: z.number().int().positive().optional(),
+          label: z.string().max(100).default(""),
+          capacity: z.number().int().min(1).max(100),
+          shape: z.enum(["round", "rect", "couple"]),
+          tableNumber: z.number().int().nullable().optional(),
+          name: z.string().max(100).optional(),
+          x: z.number(),
+          y: z.number(),
+          customW: z.number().nullable().optional(),
+          customH: z.number().nullable().optional(),
+          assignedGuests: z.array(z.number().int()).optional(),
+        })),
+        objects: z.array(z.object({
+          id: z.number().int().positive().optional(),
+          shape: z.enum(["rect", "circle"]),
+          name: z.string().max(100).optional(),
+          x: z.number(),
+          y: z.number(),
+          w: z.number(),
+          h: z.number(),
+        })),
+        venueFrame: z.object({
+          widthM: z.number().int().min(3).max(100),
+          heightM: z.number().int().min(3).max(100),
+          x: z.number(),
+          y: z.number(),
+        }).nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+        // Save tables
+        const existingTables = await getTablesByCoupleId(couple.id);
+        const incomingTableIds = new Set(input.tables.filter(t => t.id).map(t => t.id!));
+        // Delete removed tables
+        for (const et of existingTables) {
+          if (!incomingTableIds.has(et.id)) {
+            await deleteTable(et.id, couple.id);
+          }
+        }
+        const tableIdMap: Record<number, number> = {};
+        for (const t of input.tables) {
+          const data = {
+            coupleId: couple.id,
+            label: t.label || "",
+            capacity: t.capacity,
+            shape: t.shape,
+            tableNumber: t.tableNumber ?? null,
+            name: t.name ?? null,
+            x: String(t.x),
+            y: String(t.y),
+            w: t.customW ? String(t.customW) : "120",
+            h: t.customH ? String(t.customH) : "120",
+            customW: t.customW ? String(t.customW) : null,
+            customH: t.customH ? String(t.customH) : null,
+            rotation: "0",
+            assignedGuests: t.assignedGuests ?? [],
+          };
+          if (t.id) {
+            await updateTable(t.id, couple.id, data as Parameters<typeof updateTable>[2]);
+            tableIdMap[t.id] = t.id;
+          } else {
+            const newId = await createTable(data as Parameters<typeof createTable>[0]);
+            tableIdMap[-(input.tables.indexOf(t))] = newId;
+          }
+        }
+        // Save canvas objects
+        const existingObjects = await getCanvasObjectsByCoupleId(couple.id);
+        const incomingObjectIds = new Set(input.objects.filter(o => o.id).map(o => o.id!));
+        for (const eo of existingObjects) {
+          if (!incomingObjectIds.has(eo.id)) {
+            await deleteCanvasObject(eo.id, couple.id);
+          }
+        }
+        for (const o of input.objects) {
+          const data = {
+            coupleId: couple.id,
+            shape: o.shape,
+            name: o.name ?? null,
+            x: String(o.x),
+            y: String(o.y),
+            w: String(o.w),
+            h: String(o.h),
+          };
+          if (o.id) {
+            await updateCanvasObject(o.id, couple.id, data as Parameters<typeof updateCanvasObject>[2]);
+          } else {
+            await createCanvasObject(data as Parameters<typeof createCanvasObject>[0]);
+          }
+        }
+        // Save venue frame
+        if (input.venueFrame) {
+          await upsertSeatingVenueFrame(couple.id, input.venueFrame);
+        } else {
+          await deleteSeatingVenueFrame(couple.id);
+        }
+        return { success: true };
+      }),
+    // Load full canvas state
+    loadCanvas: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+      const [tableList, guestList, objectList, venueFrame] = await Promise.all([
+        getTablesByCoupleId(couple.id),
+        getGuestsByCoupleId(couple.id),
+        getCanvasObjectsByCoupleId(couple.id),
+        getSeatingVenueFrame(couple.id),
+      ]);
+      return { tables: tableList, guests: guestList, objects: objectList, venueFrame };
+    }),
   }),
 
   // ─── Budget ──────────────────────────────────────────────────────────────────
@@ -917,9 +1088,8 @@ export const appRouter = router({
           uploadedBy: "couple",
           caption: input.caption ?? null,
         });
-        return { success: true, id };
+                return { success: true, id };
       }),
-
     delete: protectedProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
@@ -928,8 +1098,36 @@ export const appRouter = router({
         await deletePhoto(input.id, couple.id);
         return { success: true };
       }),
+    /** getOrCreateQrToken: returns (and creates if needed) the couple's photo QR token */
+    getOrCreateQrToken: protectedProcedure.mutation(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "FORBIDDEN" });
+      if (couple.photoQrToken) return { token: couple.photoQrToken };
+      const token = randomBytes(24).toString("hex");
+      await updateCouple(couple.id, { photoQrToken: token } as Parameters<typeof updateCouple>[1]);
+      return { token };
+    }),
+    /** guestUpload: public endpoint — guest uploads a photo via QR token */
+    guestUpload: publicProcedure
+      .input(z.object({
+        token: z.string().min(1).max(64),
+        fileKey: z.string().min(1).max(500),
+        url: z.string().min(1).max(1000),
+        caption: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const couple = await getCoupleByPhotoToken(input.token);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין" });
+        await createPhoto({
+          coupleId: couple.id,
+          fileKey: input.fileKey,
+          url: input.url,
+          uploadedBy: "guest",
+          caption: input.caption ?? null,
+        });
+        return { success: true };
+      }),
   }),
-
   // ─── Admin (VEYA HQ) ────────────────────────────────────────────────────
   admin: router({
     getStats: adminProcedure.query(async () => {

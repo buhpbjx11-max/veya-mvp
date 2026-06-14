@@ -118,3 +118,13 @@
 - [x] UI: kill-switch per venue (active/locked/cancelled)
 - [x] UI: CRM leads table עם stage management
 - [x] בדיקות vitest לשלב 6
+
+## שלב 7 — העשרת כלים לפי פרוטוטיפ
+- [x] Seating — קנבס ויזואלי מלא: drag/resize/rotate/popover/zoom/undo/objects
+- [x] Seating — canvasObjects (אלמנטים דקורטיביים), seatingVenueFrame
+- [x] Gifts — פרטי העברה בנקאית/ביט/פייבוקס + תצוגת אורח
+- [x] Photos — QR code לאורחים + עמוד ציבורי GuestPhotoUpload + גלריה
+- [x] Guests — ייבוא CSV/Excel + ייצוא CSV/Excel + bulkCreate procedure
+- [x] Budget — גרף עוגה + progress bars לפי קטגוריה + עריכה inline
+- [x] TypeScript ללא שגיאות
+- [x] 73 בדיקות vitest עוברות

@@ -1,0 +1,1 @@
+ALTER TABLE `couples` ADD `giftSettings` json;
