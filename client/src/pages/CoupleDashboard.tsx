@@ -41,6 +41,7 @@ export default function CoupleDashboard() {
   const [chatMsg, setChatMsg] = useState("");
 
   const { data: couple, isLoading } = trpc.couple.me.useQuery(undefined, { enabled: !!user });
+  const { data: toolSettingsList } = trpc.toolSettings.list.useQuery(undefined, { enabled: !!user });
 
   const isVenueLinked = couple?.type === "venue_linked";
 
@@ -90,8 +91,27 @@ export default function CoupleDashboard() {
     ? Math.max(0, Math.ceil((weddingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  const navItems = [
-    { label: "דשבורד", icon: <IcoHome />, active: true, href: "/couple/dashboard" },
+  // Map sidebar label → toolName key (as stored in DB by AccountSettings)
+  const LABEL_TO_KEY: Record<string, string> = {
+    "אורחים": "guests",
+    "שולחנות": "seating",
+    "תקציב": "budget",
+    "ספקים": "vendors",
+    "מתנות": "gifts",
+    "לוח זמנים": "timeline",
+    "תמונות": "photos",
+    "תודות": "thanks",
+    "שיתוף משפחה": "family",
+    "מסמכים": "documents",
+  };
+  const isToolEnabled = (toolLabel: string): boolean => {
+    if (!toolSettingsList || toolSettingsList.length === 0) return true; // default: all enabled
+    const key = LABEL_TO_KEY[toolLabel] ?? toolLabel;
+    const setting = toolSettingsList.find((t) => t.toolName === key);
+    return setting ? setting.enabled : true; // if no setting saved, default enabled
+  };
+  const allNavItems = [
+    { label: "דשבורד", icon: <IcoHome />, active: true, href: "/couple/dashboard", alwaysShow: true },
     { label: "אורחים", icon: <IcoGuests />, href: "/couple/guests" },
     { label: "שולחנות", icon: <IcoTable />, href: "/couple/seating" },
     { label: "תקציב", icon: <IcoBudget />, href: "/couple/budget" },
@@ -101,6 +121,7 @@ export default function CoupleDashboard() {
     { label: "תמונות", icon: <IcoPhoto />, href: "/couple/photos" },
     { label: "תודות", icon: <IcoHeart />, href: "/couple/thanks" },
   ];
+  const navItems = allNavItems.filter((item) => (item as { alwaysShow?: boolean }).alwaysShow || isToolEnabled(item.label));
 
   const settingsItems = [
     { label: "הגדרות חשבון", icon: <IcoSettings />, href: "/couple/settings" },
