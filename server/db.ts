@@ -675,3 +675,73 @@ export async function deleteSeatingVenueFrame(coupleId: number): Promise<void> {
   if (!db) return;
   await db.delete(seatingVenueFrameTable).where(eq(seatingVenueFrameTable.coupleId, coupleId));
 }
+
+// ─── Vendors ─────────────────────────────────────────────────────────────────
+import {
+  Vendor,
+  InsertVendor,
+  FamilyAccess,
+  InsertFamilyAccess,
+  vendors,
+  familyAccess,
+} from "../drizzle/schema";
+
+export async function getVendorsByCoupleId(coupleId: number): Promise<Vendor[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(vendors).where(
+    and(eq(vendors.ownerType, "couple"), eq(vendors.ownerId, coupleId))
+  );
+}
+
+export async function createVendor(data: InsertVendor): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(vendors).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function updateVendor(id: number, data: Partial<InsertVendor>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(vendors).set(data).where(eq(vendors.id, id));
+}
+
+export async function deleteVendor(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(vendors).where(eq(vendors.id, id));
+}
+
+// ─── Family Access ────────────────────────────────────────────────────────────
+export async function getFamilyAccessByCoupleId(coupleId: number): Promise<FamilyAccess[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(familyAccess).where(eq(familyAccess.coupleId, coupleId));
+}
+
+export async function createFamilyAccess(data: InsertFamilyAccess): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(familyAccess).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function updateFamilyAccess(id: number, data: Partial<InsertFamilyAccess>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(familyAccess).set(data).where(eq(familyAccess.id, id));
+}
+
+export async function deleteFamilyAccess(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(familyAccess).where(eq(familyAccess.id, id));
+}
+
+export async function getFamilyAccessByToken(token: string): Promise<FamilyAccess | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(familyAccess).where(eq(familyAccess.inviteToken, token)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}

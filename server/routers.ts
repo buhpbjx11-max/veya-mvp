@@ -60,6 +60,15 @@ import {
   updateVenue,
   updateVenueShare,
   upsertSeatingVenueFrame,
+  getVendorsByCoupleId,
+  createVendor,
+  updateVendor,
+  deleteVendor,
+  getFamilyAccessByCoupleId,
+  createFamilyAccess,
+  updateFamilyAccess,
+  deleteFamilyAccess,
+  getFamilyAccessByToken,
 } from "./db";
 
 // ─── Admin procedure ──────────────────────────────────────────────────────────
@@ -1128,6 +1137,182 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  // ─── Vendors (ספקי הזוג) ─────────────────────────────────────────────────
+  vendor: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND", message: "לא נמצא פרופיל זוג" });
+      return getVendorsByCoupleId(couple.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        category: z.string().optional(),
+        phone: z.string().optional(),
+        contact: z.string().optional(),
+        status: z.string().optional(),
+        notes: z.string().optional(),
+        cost: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const id = await createVendor({
+          ownerType: "couple",
+          ownerId: couple.id,
+          name: input.name,
+          category: input.category ?? null,
+          phone: input.phone ?? null,
+          contact: input.contact ?? null,
+          status: input.status ?? "active",
+        });
+        return { success: true, id };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        name: z.string().min(1).optional(),
+        category: z.string().optional(),
+        phone: z.string().optional(),
+        contact: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const { id, ...data } = input;
+        await updateVendor(id, data);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        await deleteVendor(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Timeline (לוח זמנים יום החתונה) ────────────────────────────────────────
+  timeline: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      // Timeline is stored in the wedding record
+      const weddings = await getWeddingsByVenueId(0); // fallback
+      // Get couple's wedding if linked
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return { items: [] };
+      const { weddings: weddingsTable } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const weddingRows = await db.select().from(weddingsTable).where(eq(weddingsTable.coupleId, couple.id)).limit(1);
+      const wedding = weddingRows[0] ?? null;
+      return { items: (wedding?.timeline ?? []) as Array<{ id: string; time: string; label: string; responsible: string; addedBy: string }> };
+    }),
+    save: protectedProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          id: z.string(),
+          time: z.string(),
+          label: z.string(),
+          responsible: z.string().optional().default(""),
+          addedBy: z.string().optional().default("couple"),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { weddings: weddingsTable } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const weddingRows = await db.select().from(weddingsTable).where(eq(weddingsTable.coupleId, couple.id)).limit(1);
+        if (weddingRows.length > 0) {
+          await db.update(weddingsTable).set({ timeline: input.items as any }).where(eq(weddingsTable.id, weddingRows[0].id));
+        } else {
+          // Store in couple profile as fallback (no wedding linked yet)
+          await updateCouple(couple.id, { notes: JSON.stringify({ timeline: input.items }) } as any);
+        }
+        return { success: true };
+      }),
+  }),
+
+  // ─── Family Access (שיתוף עם המשפחה) ────────────────────────────────────────
+  familyAccess: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      return getFamilyAccessByCoupleId(couple.id);
+    }),
+    invite: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        accessLevel: z.enum(["view_only", "limited_edit"]).default("view_only"),
+        assignedArea: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const token = randomBytes(24).toString("hex");
+        const id = await createFamilyAccess({
+          coupleId: couple.id,
+          name: input.name,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          accessLevel: input.accessLevel,
+          assignedArea: input.assignedArea ?? null,
+          inviteToken: token,
+          status: "pending",
+        });
+        return { success: true, id, token };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        accessLevel: z.enum(["view_only", "limited_edit"]).optional(),
+        assignedArea: z.string().optional(),
+        status: z.enum(["pending", "active", "revoked"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const { id, ...data } = input;
+        await updateFamilyAccess(id, data);
+        return { success: true };
+      }),
+    revoke: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        await updateFamilyAccess(input.id, { status: "revoked" });
+        return { success: true };
+      }),
+    remove: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        await deleteFamilyAccess(input.id);
+        return { success: true };
+      }),
+    // Public: accept family invite
+    acceptInvite: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const record = await getFamilyAccessByToken(input.token);
+        if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "קישור לא תקין" });
+        if (record.status === "revoked") throw new TRPCError({ code: "FORBIDDEN", message: "גישה בוטלה" });
+        await updateFamilyAccess(record.id, { status: "active" });
+        return { success: true, name: record.name, accessLevel: record.accessLevel };
+      }),
+  }),
+
   // ─── Admin (VEYA HQ) ────────────────────────────────────────────────────
   admin: router({
     getStats: adminProcedure.query(async () => {

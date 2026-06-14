@@ -29,6 +29,9 @@ import Budget from "./pages/Budget";
 import Gifts from "./pages/Gifts";
 import Photos from "./pages/Photos";
 import GuestPhotoUpload from "./pages/GuestPhotoUpload";
+import Vendors from "./pages/Vendors";
+import Timeline from "./pages/Timeline";
+import FamilyAccess from "./pages/FamilyAccess";
 
 function Router() {
   return (
@@ -61,6 +64,11 @@ function Router() {
       <Route path="/couple/gifts" component={Gifts} />
       <Route path="/couple/photos" component={Photos} />
       <Route path="/guest-photos/:token" component={GuestPhotoUpload} />
+
+      {/* Couple tools */}
+      <Route path="/couple/vendors" component={Vendors} />
+      <Route path="/couple/timeline" component={Timeline} />
+      <Route path="/couple/family-access" component={FamilyAccess} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

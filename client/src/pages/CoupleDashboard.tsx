@@ -94,9 +94,9 @@ export default function CoupleDashboard() {
     { label: "אורחים", icon: <IcoGuests />, href: "/couple/guests" },
     { label: "שולחנות", icon: <IcoTable />, href: "/couple/seating" },
     { label: "תקציב", icon: <IcoBudget />, href: "/couple/budget" },
-    { label: "ספקים", icon: <IcoVendor />, href: null },
+    { label: "ספקים", icon: <IcoVendor />, href: "/couple/vendors" },
     { label: "מתנות", icon: <IcoGift />, href: "/couple/gifts" },
-    { label: "לוח זמנים", icon: <IcoClock />, href: null },
+    { label: "לוח זמנים", icon: <IcoClock />, href: "/couple/timeline" },
     { label: "תמונות", icon: <IcoPhoto />, href: "/couple/photos" },
   ];
 
@@ -181,7 +181,12 @@ export default function CoupleDashboard() {
 
           {/* Family + Venue Share */}
           <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "12px 12px 8px", marginTop: 4 }}>שיתוף</div>
-          <div onClick={() => toast.info("שיתוף משפחה — בקרוב")} style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer" }}>
+          <div
+            onClick={() => navigate("/couple/family-access")}
+            style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer", transition: "all 0.15s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,195,176,.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
             <span style={{ width: 16, height: 16 }}><IcoFamily /></span>
             שיתוף עם המשפחה
           </div>
