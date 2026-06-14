@@ -279,6 +279,63 @@ export const appRouter = router({
         await updateCouple(couple.id, { giftSettings: updated } as Parameters<typeof updateCouple>[1]);
         return { success: true };
       }),
+    /** getInvitation: get the couple's digital invitation data */
+    getInvitation: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      return {
+        name1: couple.name1,
+        name2: couple.name2,
+        weddingDate: couple.weddingDate,
+        invitation: (couple.invitation as Record<string, unknown>) ?? {},
+        shareToken: (couple.invitation as Record<string, unknown>)?.shareToken ?? null,
+      };
+    }),
+    /** updateInvitation: update invitation details and generate shareToken if missing */
+    updateInvitation: protectedProcedure
+      .input(z.object({
+        location: z.string().max(300).optional(),
+        time: z.string().max(10).optional(),
+        customText: z.string().max(1000).optional(),
+        rsvpDeadline: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const current = (couple.invitation as Record<string, unknown>) ?? {};
+        const shareToken = (current.shareToken as string) ?? randomBytes(24).toString("hex");
+        const updated = { ...current, ...input, shareToken };
+        await updateCouple(couple.id, { invitation: updated } as Parameters<typeof updateCouple>[1]);
+        return { success: true, shareToken };
+      }),
+  }),
+  /** invitation: public endpoint — view invitation by shareToken */
+  invitation: router({
+    getPublic: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { couples } = await import("../drizzle/schema");
+        const { sql } = await import("drizzle-orm");
+        // Find couple by shareToken inside invitation JSON
+        const rows = await db.select().from(couples)
+          .where(sql`JSON_UNQUOTE(JSON_EXTRACT(invitation, '$.shareToken')) = ${input.token}`)
+          .limit(1);
+        const couple = rows[0];
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND", message: "הזמנה לא נמצאה" });
+        const inv = (couple.invitation as Record<string, unknown>) ?? {};
+        return {
+          name1: couple.name1,
+          name2: couple.name2,
+          weddingDate: couple.weddingDate,
+          location: inv.location ?? null,
+          time: inv.time ?? null,
+          customText: inv.customText ?? null,
+          rsvpDeadline: inv.rsvpDeadline ?? null,
+        };
+      }),
   }),
   // ─── Messages (venue ↔ couple chat) ────────────────────────────────────────
   message: router({

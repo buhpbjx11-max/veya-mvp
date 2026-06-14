@@ -182,12 +182,23 @@ export default function CoupleDashboard() {
             </div>
           ))}
 
+          {/* Invitation — always visible */}
+          <div
+            onClick={() => navigate("/couple/invitation")}
+            style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer", transition: "all 0.15s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,195,176,.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <span style={{ width: 16, height: 16, flexShrink: 0 }}><IcoHeart /></span>
+            הזמנה דיגיטלית
+          </div>
+
           {/* Venue-linked extras */}
           {isVenueLinked && (
             <>
               <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "12px 12px 8px", marginTop: 4 }}>האולם</div>
               <div
-                onClick={() => setChatOpen(true)}
+                onClick={() => navigate("/couple/chat")}
                 style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,195,176,.1)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}

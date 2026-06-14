@@ -160,6 +160,17 @@ export const couples = mysqlTable("couples", {
     thankYouMessage?: string;
     enabledMethods?: string[]; // ["bit","bank","paybox","paypal"]
   }>(),
+  /**
+   * invitation: JSON — digital invitation data
+   * Displayed on the couple's public invitation page
+   */
+  invitation: json("invitation").$type<{
+    location?: string;       // e.g. "אולם הגן הקסום, רחובות"
+    time?: string;           // e.g. "19:00"
+    customText?: string;     // personal message from the couple
+    rsvpDeadline?: string;   // ISO date string
+    shareToken?: string;     // unique token for public invitation URL
+  }>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

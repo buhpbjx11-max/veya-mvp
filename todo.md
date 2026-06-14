@@ -128,3 +128,26 @@
 - [x] Budget — גרף עוגה + progress bars לפי קטגוריה + עריכה inline
 - [x] TypeScript ללא שגיאות
 - [x] 73 בדיקות vitest עוברות
+
+## שלב 8 — מסכים נוספים בעולם הזוג
+- [x] Vendors.tsx — ניהול ספקים (שם, קטגוריה, טלפון, סטטוס)
+- [x] Timeline.tsx — לוח זמנים יום האירוע
+- [x] FamilyAccess.tsx — שיתוף עם המשפחה (token-based)
+- [x] 90 בדיקות vitest עוברות
+
+## שלב 9 — מסכי סיום
+- [x] Thanks.tsx — מעקב תודות לאורחים
+- [x] FeedbackSurvey.tsx — סקר משוב שבוע אחרי
+- [x] AccountSettings.tsx — פרופיל + העדפות + kill-switch כלים
+- [x] Sidebar מגיב ל-kill-switch בזמן אמת
+- [x] תוצאות משוב זורמות לדשבורד האדמין (טאב "משוב זוגות")
+
+## שלב 10 — צ'אט פנימי + הזמנה דיגיטלית
+- [x] Chat.tsx — מסך צ'אט מלא (venue_linked בלבד, polling 5s, RTL)
+- [x] Invitation.tsx — הזמנה דיגיטלית (עריכה, תצוגה מקדימה, שיתוף קישור)
+- [x] GuestInvitation.tsx — עמוד ציבורי לאורחים (/invitation/:token, ללא auth)
+- [x] תיקון TypeScript ב-GuestInvitation.tsx (String() cast)
+- [x] routes ב-App.tsx: /couple/chat, /couple/invitation, /invitation/:token
+- [x] CoupleDashboard sidebar — הזמנה דיגיטלית + צ'אט עם האולם
+- [x] 22 בדיקות vitest חדשות לשלב 10 (סה"כ 112 בדיקות עוברות)
+- [x] TypeScript ללא שגיאות

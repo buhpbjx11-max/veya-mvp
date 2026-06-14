@@ -35,6 +35,9 @@ import FamilyAccess from "./pages/FamilyAccess";
 import Thanks from "./pages/Thanks";
 import FeedbackSurvey from "./pages/FeedbackSurvey";
 import AccountSettings from "./pages/AccountSettings";
+import Chat from "./pages/Chat";
+import Invitation from "./pages/Invitation";
+import GuestInvitation from "./pages/GuestInvitation";
 
 function Router() {
   return (
@@ -75,6 +78,11 @@ function Router() {
       <Route path="/couple/thanks" component={Thanks} />
       <Route path="/couple/feedback" component={FeedbackSurvey} />
       <Route path="/couple/settings" component={AccountSettings} />
+      <Route path="/couple/chat" component={Chat} />
+      <Route path="/couple/invitation" component={Invitation} />
+
+      {/* Public invitation — no auth required */}
+      <Route path="/invitation/:token" component={GuestInvitation} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />
