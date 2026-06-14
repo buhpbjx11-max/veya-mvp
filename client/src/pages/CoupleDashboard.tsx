@@ -25,6 +25,7 @@ const IcoHeart = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const IcoLogout = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
 const IcoLink = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>;
 const IcoSend = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>;
+const IcoSettings = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
 
 const CARD_STYLE = {
   background: "#fff",
@@ -98,6 +99,12 @@ export default function CoupleDashboard() {
     { label: "מתנות", icon: <IcoGift />, href: "/couple/gifts" },
     { label: "לוח זמנים", icon: <IcoClock />, href: "/couple/timeline" },
     { label: "תמונות", icon: <IcoPhoto />, href: "/couple/photos" },
+    { label: "תודות", icon: <IcoHeart />, href: "/couple/thanks" },
+  ];
+
+  const settingsItems = [
+    { label: "הגדרות חשבון", icon: <IcoSettings />, href: "/couple/settings" },
+    { label: "משוב על החתונה", icon: <IcoSend />, href: "/couple/feedback" },
   ];
 
   return (
@@ -202,10 +209,22 @@ export default function CoupleDashboard() {
               שיתוף עם האולם
             </div>
           )}
-          <div onClick={() => toast.info("תודות — בקרוב")} style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer" }}>
-            <span style={{ width: 16, height: 16 }}><IcoHeart /></span>
-            תודות אחרי החתונה
-          </div>
+        
+
+          {/* Settings section */}
+          <div style={{ fontSize: 10, color: "rgba(248,246,242,.45)", letterSpacing: "1.5px", textTransform: "uppercase", padding: "12px 12px 8px", marginTop: 4 }}>חשבון</div>
+          {settingsItems.map((item) => (
+            <div
+              key={item.label}
+              onClick={() => navigate(item.href)}
+              style={{ padding: "10px 12px", color: "rgba(248,246,242,.65)", borderRadius: 4, display: "flex", alignItems: "center", gap: 11, fontSize: 13.5, marginBottom: 2, cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,195,176,.1)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <span style={{ width: 16, height: 16, flexShrink: 0 }}>{item.icon}</span>
+              {item.label}
+            </div>
+          ))}
 
           {/* Profile */}
           <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid rgba(248,246,242,.1)", display: "flex", alignItems: "center", gap: 10 }}>

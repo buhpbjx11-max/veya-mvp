@@ -32,6 +32,9 @@ import GuestPhotoUpload from "./pages/GuestPhotoUpload";
 import Vendors from "./pages/Vendors";
 import Timeline from "./pages/Timeline";
 import FamilyAccess from "./pages/FamilyAccess";
+import Thanks from "./pages/Thanks";
+import FeedbackSurvey from "./pages/FeedbackSurvey";
+import AccountSettings from "./pages/AccountSettings";
 
 function Router() {
   return (
@@ -69,6 +72,9 @@ function Router() {
       <Route path="/couple/vendors" component={Vendors} />
       <Route path="/couple/timeline" component={Timeline} />
       <Route path="/couple/family-access" component={FamilyAccess} />
+      <Route path="/couple/thanks" component={Thanks} />
+      <Route path="/couple/feedback" component={FeedbackSurvey} />
+      <Route path="/couple/settings" component={AccountSettings} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

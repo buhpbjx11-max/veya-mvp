@@ -745,3 +745,73 @@ export async function getFamilyAccessByToken(token: string): Promise<FamilyAcces
   const result = await db.select().from(familyAccess).where(eq(familyAccess.inviteToken, token)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
+
+// ─── Feedback helpers ─────────────────────────────────────────────────────────
+import {
+  Feedback,
+  InsertFeedback,
+  ToolSetting,
+  InsertToolSetting,
+  feedback,
+  toolSettings,
+} from "../drizzle/schema";
+
+export async function getFeedbackByCoupleId(coupleId: number): Promise<Feedback | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(feedback).where(eq(feedback.coupleId, coupleId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createFeedback(data: InsertFeedback): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(feedback).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function getAllFeedback(): Promise<Feedback[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(feedback).orderBy(feedback.createdAt);
+}
+
+// ─── ToolSettings helpers ─────────────────────────────────────────────────────
+export async function getToolSettingsByCoupleId(coupleId: number): Promise<ToolSetting[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(toolSettings).where(eq(toolSettings.coupleId, coupleId));
+}
+
+export async function upsertToolSetting(coupleId: number, toolName: string, enabled: boolean, sortOrder: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Try update first
+  const existing = await db.select().from(toolSettings)
+    .where(and(eq(toolSettings.coupleId, coupleId), eq(toolSettings.toolName, toolName)))
+    .limit(1);
+  if (existing.length > 0) {
+    await db.update(toolSettings).set({ enabled, sortOrder }).where(eq(toolSettings.id, existing[0].id));
+  } else {
+    await db.insert(toolSettings).values({ coupleId, toolName, enabled, sortOrder });
+  }
+}
+
+// ─── Thanks helpers (uses guests table giftAmount/thanked) ────────────────────
+export async function getGuestsWithGifts(coupleId: number): Promise<Guest[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(guests).where(and(eq(guests.coupleId, coupleId)));
+}
+
+export async function markGuestThanked(guestId: number, thanked: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(guests).set({ thanked }).where(eq(guests.id, guestId));
+}
+
+export async function updateGuestGift(guestId: number, giftAmount: string | null, giftNote: string | null): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(guests).set({ giftAmount, giftNote } as any).where(eq(guests.id, guestId));
+}

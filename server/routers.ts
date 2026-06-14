@@ -69,6 +69,14 @@ import {
   updateFamilyAccess,
   deleteFamilyAccess,
   getFamilyAccessByToken,
+  getFeedbackByCoupleId,
+  createFeedback,
+  getAllFeedback,
+  getToolSettingsByCoupleId,
+  upsertToolSetting,
+  getGuestsWithGifts,
+  markGuestThanked,
+  updateGuestGift,
 } from "./db";
 
 // ─── Admin procedure ──────────────────────────────────────────────────────────
@@ -1313,6 +1321,108 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Thanks (תודות) ────────────────────────────────────────────────────────
+  thanks: router({
+    /** list: get all guests with gift info */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      return getGuestsWithGifts(couple.id);
+    }),
+    /** markThanked: toggle thanked status for a guest */
+    markThanked: protectedProcedure
+      .input(z.object({ guestId: z.number(), thanked: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        // Verify guest belongs to couple
+        const guestList = await getGuestsWithGifts(couple.id);
+        const guest = guestList.find((g) => g.id === input.guestId);
+        if (!guest) throw new TRPCError({ code: "NOT_FOUND", message: "אורח לא נמצא" });
+        await markGuestThanked(input.guestId, input.thanked);
+        return { success: true };
+      }),
+    /** updateGift: update gift amount and note for a guest */
+    updateGift: protectedProcedure
+      .input(z.object({
+        guestId: z.number(),
+        giftAmount: z.string().nullable().optional(),
+        giftNote: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        const guestList = await getGuestsWithGifts(couple.id);
+        const guest = guestList.find((g) => g.id === input.guestId);
+        if (!guest) throw new TRPCError({ code: "NOT_FOUND", message: "אורח לא נמצא" });
+        await updateGuestGift(input.guestId, input.giftAmount ?? null, input.giftNote ?? null);
+        return { success: true };
+      }),
+  }),
+  // ─── Feedback (משוב) ─────────────────────────────────────────────────────────
+  feedback: router({
+    /** get: get couple's feedback (null if not submitted yet) */
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      return getFeedbackByCoupleId(couple.id);
+    }),
+    /** submit: submit feedback survey */
+    submit: protectedProcedure
+      .input(z.object({
+        ratings: z.record(z.string(), z.number().min(1).max(5)),
+        systemFeedback: z.string().max(2000).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        // Check if already submitted
+        const existing = await getFeedbackByCoupleId(couple.id);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "המשוב כבר נשלח" });
+        await createFeedback({
+          coupleId: couple.id,
+          venueId: couple.venueId ?? undefined,
+          ratings: input.ratings,
+          systemFeedback: input.systemFeedback,
+        });
+        return { success: true };
+      }),
+  }),
+  // ─── Tool Settings (הגדרות כלים) ─────────────────────────────────────────────
+  toolSettings: router({
+    /** list: get all tool settings for couple */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const couple = await getCoupleByUserId(ctx.user.id);
+      if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+      return getToolSettingsByCoupleId(couple.id);
+    }),
+    /** upsert: enable/disable a tool */
+    upsert: protectedProcedure
+      .input(z.object({
+        toolName: z.string().min(1).max(100),
+        enabled: z.boolean(),
+        sortOrder: z.number().int().min(0).max(100).default(0),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        await upsertToolSetting(couple.id, input.toolName, input.enabled, input.sortOrder);
+        return { success: true };
+      }),
+    /** bulkUpsert: update multiple tools at once */
+    bulkUpsert: protectedProcedure
+      .input(z.array(z.object({
+        toolName: z.string().min(1).max(100),
+        enabled: z.boolean(),
+        sortOrder: z.number().int().min(0).max(100),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        const couple = await getCoupleByUserId(ctx.user.id);
+        if (!couple) throw new TRPCError({ code: "NOT_FOUND" });
+        await Promise.all(input.map((t) => upsertToolSetting(couple.id, t.toolName, t.enabled, t.sortOrder)));
+        return { success: true };
+      }),
+  }),
   // ─── Admin (VEYA HQ) ────────────────────────────────────────────────────
   admin: router({
     getStats: adminProcedure.query(async () => {
