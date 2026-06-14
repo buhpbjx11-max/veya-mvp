@@ -147,7 +147,6 @@ function UserTypeTabs() {
     <div style={{ display: "flex", gap: 4, background: "var(--cream)", border: "1px solid var(--border)", padding: 4, borderRadius: 4, marginBottom: 22 }}>
       {[
         { label: "אולם", active: true },
-        { label: "מתכנן", active: false },
         { label: "זוג", active: false },
       ].map(({ label, active }) => (
         <button

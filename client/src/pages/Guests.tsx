@@ -239,7 +239,7 @@ export default function Guests() {
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 4 }}>צד</label>
-                <input value={form.side} onChange={e => setForm(f => ({ ...f, side: e.target.value }))} placeholder="כלה / חתן"
+                <input value={form.side} onChange={e => setForm(f => ({ ...f, side: e.target.value }))} placeholder="צד הזוג / משותף"
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 9999, border: "1px solid #e8e2d9", fontSize: 14, fontFamily: "'Heebo', sans-serif", boxSizing: "border-box" }} />
               </div>
               <div>
