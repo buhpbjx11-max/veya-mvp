@@ -3,7 +3,7 @@
 ## שלב 1 — מסד נתונים
 - [x] הגדרת סכמת Drizzle: venues, couples, weddings, guests, tables, vendors, subscriptions, invoices, leads, access_grants, documents, feedback + budget_items, photos, messages, family_access, tool_settings
 - [x] הרצת migration ויישום SQL — 18 טבלאות נוצרו בהצלחה
-- [ ] בדיקת סכמה (vitest) — להוסיף בשלב 11
+- [x] בדיקת סכמה (vitest) — בוצע בשלב 11 (schema.test.ts)
 
 ## שלב 2 — אימות וניתוב
 - [x] דף לוגין אחד עם ניתוב לפי סוג חשבון (venue / couple / admin) — Login.tsx + AuthRedirect.tsx
@@ -46,7 +46,7 @@
 - [x] פלטת צבעים: cream #F8F6F2, greens #DDEAE0/#A8C3B0/#5D6861/#3F4842, sand #D9C5A1
 - [x] פונטים: Heebo, Frank Ruhl Libre, Cormorant Garamond — מוטמעים ב-index.html
 - [x] נטרליות מגדרית: שם 1 / שם 2 בכל מקום
-- [ ] בדיקות E2E בסיסיות — לא בסקופ MVP
+- [x] בדיקות E2E בסיסיות — לא בסקופ MVP (הוצא מהסקופ)
 
 ## תוספת לשלב 1 — צוות חיצוני
 - [x] הוספת טבלת external_staff (שם/תפקיד/וואטסאפ/אימייל, שייך לאולם ו/או לחתונה)
