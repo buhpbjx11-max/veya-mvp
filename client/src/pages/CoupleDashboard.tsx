@@ -390,19 +390,19 @@ export default function CoupleDashboard() {
             <p style={{ fontSize: 13, color: "#8B8B85", marginBottom: 20 }}>כל מה שצריך לחתונה מושלמת</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
               {[
-                { label: "אורחים", sub: "ניהול רשימת האורחים", icon: <IcoGuests />, progress: 0 },
-                { label: "שולחנות", sub: "סידור ישיבה", icon: <IcoTable />, progress: 0 },
-                { label: "תקציב", sub: "מעקב הוצאות", icon: <IcoBudget />, progress: 0 },
-                { label: "ספקים", sub: "צוות ונותני שירות", icon: <IcoVendor />, progress: 0 },
-                { label: "קופת מתנות", sub: "מעקב מתנות", icon: <IcoGift />, progress: 0 },
-                { label: "תמונות", sub: "גלריית החתונה", icon: <IcoPhoto />, progress: 0 },
+                { label: "אורחים", sub: "ניהול רשימת האורחים", icon: <IcoGuests />, href: "/couple/guests" },
+                { label: "שולחנות", sub: "סידור ישיבה", icon: <IcoTable />, href: "/couple/seating" },
+                { label: "תקציב", sub: "מעקב הוצאות", icon: <IcoBudget />, href: "/couple/budget" },
+                { label: "ספקים", sub: "צוות ונותני שירות", icon: <IcoVendor />, href: "/couple/vendors" },
+                { label: "קופת מתנות", sub: "מעקב מתנות", icon: <IcoGift />, href: "/couple/gifts" },
+                { label: "תמונות", sub: "גלריית החתונה", icon: <IcoPhoto />, href: "/couple/photos" },
               ].map((tool) => (
                 <div
                   key={tool.label}
-                  onClick={() => toast.info(`${tool.label} — בקרוב`)}
+                  onClick={() => navigate(tool.href)}
                   style={{ border: "1px solid #EFEDE7", borderRadius: 12, padding: "16px 18px", cursor: "pointer", transition: "all 0.15s", background: "#FAFAF8" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#A8C3B0"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#EFEDE7"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#A8C3B0"; (e.currentTarget as HTMLDivElement).style.background = "#F4F8F5"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#EFEDE7"; (e.currentTarget as HTMLDivElement).style.background = "#FAFAF8"; }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 6, background: "#DDEAE0", color: "#3F4842", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -413,10 +413,8 @@ export default function CoupleDashboard() {
                       <div style={{ fontSize: 11, color: "#8B8B85" }}>{tool.sub}</div>
                     </div>
                   </div>
-                  <div style={{ height: 3, background: "#EFEDE7", borderRadius: 2 }}>
-                    <div style={{ height: "100%", width: `${tool.progress}%`, background: "#A8C3B0", borderRadius: 2 }} />
-                  </div>
-                  <div style={{ fontSize: 10.5, color: "#8B8B85", marginTop: 5 }}>בקרוב</div>
+                  <div style={{ height: 3, background: "#EFEDE7", borderRadius: 2 }} />
+                  <div style={{ fontSize: 10.5, color: "#A8C3B0", marginTop: 5 }}>לחץ לכניסה ←</div>
                 </div>
               ))}
             </div>

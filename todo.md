@@ -154,5 +154,10 @@
 
 ## שלב 11 — vitest לסכמה + שיפורים
 - [x] vitest לסכמת Drizzle — 99 בדיקות: עמודות, relations, type inference (schema.test.ts) — סה"כ 211 בדיקות עוברות
-- [ ] שיפור CoupleDashboard — כפתורי tools grid מנווטים לדפים האמיתיים
-- [ ] RSVP page (/rsvp?token=...) — טופס אישור הגעה לאורחים
+- [x] שיפור CoupleDashboard — כפתורי tools grid מנווטים לדפים האמיתיים
+- [x] RSVP page (/rsvp?token=...) — טופס אישור הגעה לאורחים (GuestRsvp.tsx) + route /rsvp
+
+## שלב 12 — חיבור RSVP + נייטרליות מגדרית
+- [x] תיקון ניסוח נייטרלי מגדרי ב-GuestRsvp.tsx
+- [x] חיבור RSVP אמיתי: כפתור קישור RSVP אישי בשורת כל אורח ב-Guests.tsx
+- [x] חיבור מ-GuestInvitation: כפתור "אשר הגעה" מנווט ל-/rsvp?token=... עם inviteToken של האורח

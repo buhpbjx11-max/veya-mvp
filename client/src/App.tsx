@@ -38,6 +38,7 @@ import AccountSettings from "./pages/AccountSettings";
 import Chat from "./pages/Chat";
 import Invitation from "./pages/Invitation";
 import GuestInvitation from "./pages/GuestInvitation";
+import GuestRsvp from "./pages/GuestRsvp";
 
 function Router() {
   return (
@@ -83,6 +84,8 @@ function Router() {
 
       {/* Public invitation — no auth required */}
       <Route path="/invitation/:token" component={GuestInvitation} />
+      {/* Public RSVP — no auth required */}
+      <Route path="/rsvp" component={GuestRsvp} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />
