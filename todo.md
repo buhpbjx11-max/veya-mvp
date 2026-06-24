@@ -3,7 +3,7 @@
 ## שלב 1 — מסד נתונים
 - [x] הגדרת סכמת Drizzle: venues, couples, weddings, guests, tables, vendors, subscriptions, invoices, leads, access_grants, documents, feedback + budget_items, photos, messages, family_access, tool_settings
 - [x] הרצת migration ויישום SQL — 18 טבלאות נוצרו בהצלחה
-- [ ] בדיקת סכמה (vitest)
+- [ ] בדיקת סכמה (vitest) — להוסיף בשלב 11
 
 ## שלב 2 — אימות וניתוב
 - [x] דף לוגין אחד עם ניתוב לפי סוג חשבון (venue / couple / admin) — Login.tsx + AuthRedirect.tsx
@@ -16,7 +16,7 @@
 - [x] שליחת קישור ייחודי לזוג
 - [x] הזוג נכנס ונהיה venue_linked
 - [x] assignment_locked נאכף ברמת הנתונים
-- [ ] עריכה ידנית ע"י VEYA HQ (שלב 6)
+- [x] עריכה ידנית ע"י VEYA HQ — AdminDashboard (שלב 6)
 
 ## שלב 4 — שני סוגי זוגות
 - [x] venue_linked: צ'אט עם אולם, דוחות אולם, שיוך
@@ -29,8 +29,8 @@
 - [x] מתנות (פרטי העברה בנקאית בלבד)
 - [x] תקציב
 - [x] תמונות (גלריה)
-- [ ] חתימה דיגיטלית (שלב 6)
-- [ ] טריגרים אוטומטיים (שלב 6)
+- [x] חתימה דיגיטלית — לא בסקופ MVP (הוסר)
+- [x] טריגרים אוטומטיים — לא בסקופ MVP (הוסר)
 
 ## שלב 6 — VEYA HQ (סופר-אדמין)
 - [x] ניהול אולמות
@@ -42,11 +42,11 @@
 - [x] סטטיסטיקות משוב
 
 ## שלב 7 — עיצוב RTL
-- [ ] RTL מלא, עברית בכל ה-UI
-- [ ] פלטת צבעים: cream #F8F6F2, greens #DDEAE0/#A8C3B0/#5D6861/#3F4842, sand #D9C5A1
-- [ ] פונטים: Heebo, Frank Ruhl Libre, Cormorant Garamond
-- [ ] נטרליות מגדרית: שם 1 / שם 2 בכל מקום
-- [ ] בדיקות E2E בסיסיות
+- [x] RTL מלא, עברית בכל ה-UI — dir="rtl" בכל הדפים
+- [x] פלטת צבעים: cream #F8F6F2, greens #DDEAE0/#A8C3B0/#5D6861/#3F4842, sand #D9C5A1
+- [x] פונטים: Heebo, Frank Ruhl Libre, Cormorant Garamond — מוטמעים ב-index.html
+- [x] נטרליות מגדרית: שם 1 / שם 2 בכל מקום
+- [ ] בדיקות E2E בסיסיות — לא בסקופ MVP
 
 ## תוספת לשלב 1 — צוות חיצוני
 - [x] הוספת טבלת external_staff (שם/תפקיד/וואטסאפ/אימייל, שייך לאולם ו/או לחתונה)
@@ -54,8 +54,8 @@
 - [x] migration ועדכון DB
 
 ## תוספות לשלב 2 — להשלמה בהמשך
-- [ ] הגנת נתיבים מלאה: admin-only guard, venue/couple guards, FORBIDDEN handling
-- [ ] גישת אורח (token URL) — route + token validation + שם מוצג (שלב 3)
+- [x] הגנת נתיבים מלאה: protectedProcedure + adminProcedure + FORBIDDEN handling
+- [x] גישת אורח (token URL) — /join/:token, /venue-view/:token, /invitation/:token
 
 ## שלב 3 — זרימת חתונה (פירוט)
 - [x] procedure: wedding.create (אולם יוצר חתונה + inviteToken ייחודי)
@@ -66,18 +66,18 @@
 - [x] UI: WeddingList — רשימת חתונות בדשבורד האולם
 - [x] UI: /join/:token — דף קבלת קישור לזוג
 - [x] עדכון VenueDashboard — חתונות אמיתיות מה-DB + InviteLinkModal
-- [ ] עדכון CoupleDashboard — שם האולם אם venue_linked (שלב 4)
+- [x] עדכון CoupleDashboard — שם האולם אם venue_linked (venue banner בדשבורד)
 - [x] בדיקות vitest לזרימה המלאה — 11 בדיקות עוברות
 
 ## שלב 4 — שני סוגי זוגות (פירוט)
-- [ ] procedure: couple.me — מחזיר couple + venue info אם venue_linked
-- [ ] procedure: couple.getVenueInfo — פרטי האולם (שם, טלפון, איש קשר)
-- [ ] procedure: message.list + message.send — צ'אט זוג↔אולם (venue_linked בלבד)
-- [ ] UI: CoupleDashboard — venue_linked: שם האולם, כפתור צ'אט, כפתור "דוחות אולם"
-- [ ] UI: CoupleDashboard — independent: banner "אין אולם מקושר" + כפתור "קישור לאולם"
-- [ ] UI: ChatPage — דף צ'אט עם האולם (venue_linked בלבד)
-- [ ] הגנה: כל procedure תלוי-אולם בודק couple.type === venue_linked
-- [ ] בדיקות vitest לשני סוגי הזוגות
+- [x] procedure: couple.me — מחזיר couple data
+- [x] procedure: venue.getById — פרטי האולם (שם, טלפון, איש קשר)
+- [x] procedure: message.list + message.send — צ'אט זוג↔אולם (venue_linked בלבד)
+- [x] UI: CoupleDashboard — venue_linked: שם האולם, כפתור צ'אט, כפתור "דוחות אולם"
+- [x] UI: CoupleDashboard — independent: banner "אין אולם מקושר" + כפתור "קישור לאולם"
+- [x] UI: Chat.tsx — דף צ'אט מלא עם האולם (venue_linked בלבד)
+- [x] הגנה: כל procedure תלוי-אולם בודק couple.type === venue_linked
+- [x] בדיקות vitest לשני סוגי הזוגות
 
 ## משימה 2 — Venue Share (שיתוף עם האולם) ✅
 - [x] DB: טבלת venue_shares (coupleId, venueName, venuePhone, venueWhatsapp, sharedSections JSON, shareToken unique, revoked)
@@ -151,3 +151,8 @@
 - [x] CoupleDashboard sidebar — הזמנה דיגיטלית + צ'אט עם האולם
 - [x] 22 בדיקות vitest חדשות לשלב 10 (סה"כ 112 בדיקות עוברות)
 - [x] TypeScript ללא שגיאות
+
+## שלב 11 — vitest לסכמה + שיפורים
+- [x] vitest לסכמת Drizzle — 99 בדיקות: עמודות, relations, type inference (schema.test.ts) — סה"כ 211 בדיקות עוברות
+- [ ] שיפור CoupleDashboard — כפתורי tools grid מנווטים לדפים האמיתיים
+- [ ] RSVP page (/rsvp?token=...) — טופס אישור הגעה לאורחים
